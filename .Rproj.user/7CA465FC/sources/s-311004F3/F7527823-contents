@@ -17,7 +17,6 @@ if (dir.exists("materials")) {} else {dir.create("materials")}
 source("market monitor dependency.R")
 source("word_report_dependency.R")
 
-#con2 <- dbConnect(SQLite(), "sample.sqlite")
 con2 <- dbConnect(SQLite(), "NEW_CNUSD.sqlite")
 
 # set the dates params
