@@ -1,0 +1,743 @@
+# setup -------------------------------------------------------------------
+library(DT)
+library(formattable)
+library(treemap)
+library(d3treeR)
+library(knitr)
+library(lubridate)
+library(officer)
+library(officedown)
+library(magrittr)
+library(ggpubr)
+library(flextable)
+library(rvest)
+
+if (dir.exists("materials")) {} else {dir.create("materials")}
+
+source("market monitor dependency.R")
+source("word_report_dependency.R")
+
+#con2 <- dbConnect(SQLite(), "sample.sqlite")
+con2 <- dbConnect(SQLite(), "NEW_CNUSD.sqlite")
+
+# set the dates params
+date_end <- "2020-12-11"
+date_wk <- as.character(ymd(date_end) - 7)   # begin of last week
+date_mt <-  "2020-11-30"  # begin of the month
+date_yr <-  "2020-01-02" # begin of the year
+date_min <- "2016-01-01"    # begin of the data
+dates = list(date_end = date_end, date_wk = date_wk, date_mt = date_mt, date_yr = date_yr, date_min = date_min)
+
+# fetch some dfs to ref
+bonds_info = dbGetQuery(con2, "SELECT * FROM bonds_info WHERE date = (SELECT MAX(date) FROM bonds_info)")
+bonds_info_tidy = tidy_bonds(bonds_info, "cat")
+
+hist_data_this_year <- dbGetQuery(con2, sprintf("SELECT * FROM hist_data WHERE strftime('%%Y', date) = '%s';", as.character(year(ymd(date_end)))))
+mapping_credit2 = dbReadTable(con2, "mapping_credit2")
+
+index_cat_wt <- dbGetQuery(con2, sprintf("SELECT date, year, month, ID, cat AS Category, price, price_dirty, CPN, Amount, weight_wt, weight_eq FROM index_cat_wt WHERE date = '%s'", date_mt))
+index_cat_price <- dbGetQuery(con2, sprintf("SELECT date, cat AS Category, YTM, spread, duration, DTS, index_price_net, index_price_total, cal_method FROM index_cat_price WHERE date >= '%s' AND date <= '%s'", date_min, date_end))
+
+index_rating2_wt <-dbGetQuery(con2, sprintf("SELECT date, year, month, ID, rating2, price, price_dirty, CPN, Amount, weight_wt, weight_eq FROM index_rating2_wt WHERE date = '%s'", date_mt))
+index_rating2_price <- dbGetQuery(con2, sprintf("SELECT date, rating2, YTM, spread, duration, DTS, index_price_net, index_price_total, cal_method FROM index_rating2_price WHERE date >= '%s' AND date <= '%s'", date_min, date_end))
+
+index_Label_wt <-dbGetQuery(con2, sprintf("SELECT date, year, month, ID, Label, price, price_dirty, CPN, Amount, weight_wt, weight_eq FROM index_Label_wt WHERE date = '%s'", date_mt))
+index_Label_price <- dbGetQuery(con2, sprintf("SELECT date, Label, YTM, spread, duration, DTS, index_price_net, index_price_total, cal_method FROM index_Label_price WHERE date >= '%s' AND date <= '%s'", date_min, date_end))
+
+index_generic_wt <- dbGetQuery(con2, sprintf("SELECT date, year, month, ID, generic, price, price_dirty, CPN, Amount, weight_wt, weight_eq FROM index_generic_wt WHERE date = '%s'", date_mt))
+index_generic_price <- dbGetQuery(con2, "SELECT date, generic, YTM, spread, duration, DTS, index_price_net, index_price_total, cal_method FROM index_generic_price WHERE date >= '2019-06-30'")
+
+index_sum_table_Label <- dbGetQuery(con2, sprintf("SELECT date, cat AS Category, Label, YTM, spread, duration, DTS, index_price_net, index_price_total FROM index_sum_table_Label WHERE date in ('%s', '%s', '%s', '%s')", date_yr, date_mt, date_wk, date_end))
+
+index_sum_table_rating2 <- dbGetQuery(con2, sprintf("SELECT date, cat AS Category, rating2, YTM, spread, duration, DTS, index_price_net, index_price_total FROM index_sum_table_rating2 WHERE date in ('%s', '%s', '%s', '%s')", date_yr, date_mt, date_wk, date_end))
+
+index_wts <- list(cat = index_cat_wt, rating2 = index_rating2_wt, Label = index_Label_wt, generic = index_generic_wt)
+index_prices <- list(cat = index_cat_price, rating2 = index_rating2_price, Label = index_Label_price, generic = index_generic_price)
+
+data_bond <- bond(bonds_info, mapping_credit2)
+snap_data <- snap(data_bond, index_cat_wt, hist_data_this_year, date_wk, date_end)
+snap_data_MTD <- snap(data_bond, index_cat_wt, hist_data_this_year, date_mt, date_end)
+snap_data_YTD <- snap(data_bond, index_cat_wt, hist_data_this_year, date_yr, date_end)
+data <- list(snap_data = snap_data,
+             snap_data_MTD = snap_data_MTD,
+             snap_data_YTD = snap_data_YTD)
+
+#mode <- 2
+
+Market <- report2(bonds_info, mapping_credit2, data, index_wts, index_prices)
+
+property <- report1(data_bond, snap_data, index_wts, index_prices, name = "HY Property")
+
+IG <- report1(data_bond, snap_data, index_wts, index_prices, name = "IG Corporate")
+Financials <- report1(data_bond, snap_data, index_wts, index_prices, name = "Financials")
+LGFV <- report1(data_bond, snap_data, index_wts, index_prices, name = "LGFV")
+Industry <- report1(data_bond, snap_data, index_wts, index_prices, name = "Industry")
+
+AT1 <- report1(data_bond, snap_data, index_wts, index_prices, name = "AT1")
+Tier2 <- report1(data_bond, snap_data, index_wts, index_prices, name = "Tier 2")
+EM <- report1(data_bond, snap_data, index_wts, index_prices, name = "EM")
+
+plot1 <- metric_plot2(index_prices$rating2, group = "rating2", name1 = "BB", name2 = "B", metric = "yield")
+plot2 <- metric_plot2(index_prices$Label, "Label", "low beta", "high beta", "yield")
+plot4 <- metric_plot2(index_prices$cat, "Category", "Tier 2", "AT1", "spread")
+
+plot3 <- generic_plot(index_prices$generic)
+
+
+
+# 1. 市场表现回顾 ---------------------------------------------------------------
+run_num <- run_autonum(seq_id = "fig", pre_label = "图")
+run_num_t <- run_autonum(seq_id = "table", pre_label = "表")
+
+
+weekly_report <- read_docx(path = "word_reports/template1.docx") %>%
+  body_add_par("周会", style = "Title") %>%
+  body_add_par("目录", style = "centered") %>%
+  body_add_toc(level = 3) %>%
+  
+  body_add_break() %>% 
+  
+  body_add_par("一、主要资产类别回顾", style = "heading 1") %>%
+  body_add_caption(block_caption("主要资产近一周涨跌幅汇总", 
+                                 style = "chart1",
+                                 autonum = run_num)) %>%
+  body_add_img(src = "materials/主要资产类别回顾.png", 
+               width = 7.5, height = 7.65,
+               style = "centered") %>%
+  body_add_break()
+
+
+
+# 2. 板块回顾---------------------------------------------------------------------
+weekly_report <- weekly_report %>%
+  body_add_par("二.主要板块回顾", style = "heading 1") %>%
+  
+  
+  
+  body_add_par("1.总体概览", style = "heading 2") %>%
+  body_add_par("1)Index Review", style = "heading 3") %>%
+  body_add_caption(block_caption("Return & Valuation", 
+                                 style = "chart1",
+                                 autonum = run_num)) %>%
+  body_add_gg(value = ggarrange(Market$plot1, Market$plot2, 
+                                ncol = 2, nrow = 1), style = "left",
+              width = 7.5, height = 3) %>%
+  
+  body_add_gg(value = ggarrange(Market$plot3, Market$plot4, 
+                                ncol = 2, nrow = 1), style = "left",
+              width = 7.5, height = 3) %>%
+  
+  body_add_par("2)Market Summary", style = "heading 3") %>%
+  body_add_caption(block_caption("Market Summary By Category", 
+                                 style = "table1",
+                                 autonum = run_num_t)) %>%
+  body_add_flextable(value = tran_kable1(Market$summary1[1], 7.5)) %>%
+  
+  body_add_caption(block_caption("Market Summary By rating2", 
+                                 style = "table1",
+                                 autonum = run_num_t)) %>%
+  body_add_flextable(value = tran_kable1(Market$summary2[1], 7.5)) %>%
+  
+  body_add_caption(block_caption("Top 10", 
+                                 style = "table1",
+                                 autonum = run_num_t)) %>%
+  body_add_flextable(value = tran_kable1(Market$top[1], 7.5)) %>%
+  
+  body_add_caption(block_caption("Bottom 10", 
+                                 style = "table1",
+                                 autonum = run_num_t)) %>%
+  body_add_flextable(value = tran_kable1(Market$bottom[1], 7.5)) %>%
+  
+  body_add_caption(block_caption("Top 10 MTD", 
+                                 style = "table1",
+                                 autonum = run_num_t)) %>%
+  body_add_flextable(value = tran_kable1(Market$top_MTD[1], 7.5)) %>%
+  
+  body_add_caption(block_caption("Bottom 10 MTD", 
+                                 style = "table1",
+                                 autonum = run_num_t)) %>%
+  body_add_flextable(value = tran_kable1(Market$bottom_MTD[1], 7.5)) %>%
+  
+  body_add_caption(block_caption("Top 10 YTD", 
+                                 style = "table1",
+                                 autonum = run_num_t)) %>%
+  body_add_flextable(value = tran_kable1(Market$top_YTD[1], 7.5)) %>%
+  
+  body_add_caption(block_caption("Bottom 10 YTD", 
+                                 style = "table1",
+                                 autonum = run_num_t)) %>%
+  body_add_flextable(value = tran_kable1(Market$bottom_YTD[1], 7.5)) %>%
+  
+  body_add_par("3)Duration Matrix", style = "heading 3") %>%
+  body_add_caption(block_caption("Duration Matrix for price_chg By Category", 
+                                 style = "table1",
+                                 autonum = run_num_t)) %>%
+  body_add_flextable(value = tran_kable2(Market$summary3[1], 7.5)) %>%
+  
+  body_add_caption(block_caption("Duration Matrix for spread By Category", 
+                                 style = "table1",
+                                 autonum = run_num_t)) %>%
+  body_add_flextable(value = tran_kable2(Market$summary4[1], 7.5)) %>%
+  
+  
+  
+  body_add_par("2.HY Property", style = "heading 2") %>%
+  
+  body_add_par("1)Index Review", style = "heading 3") %>%
+  body_add_caption(block_caption("Return & Valuation", 
+                                 style = "chart1",
+                                 autonum = run_num)) %>%
+  body_add_gg(value = ggarrange(property$return, property$spread, 
+                                ncol = 2, nrow = 1), style = "left",
+              width = 7.5, height = 3) %>%
+  
+  body_add_gg(value = ggarrange(property$yield, property$DTS, 
+                                ncol = 2, nrow = 1), style = "left",
+              width = 7.5, height = 3) %>%
+  
+  body_add_gg(value = ggarrange(plot1, plot2, 
+                                ncol = 2, nrow = 1), style = "left",
+              width = 7.5, height = 3) %>%
+  
+  
+  body_add_par("2)HY Property Summary", style = "heading 3") %>%
+  body_add_caption(block_caption("Summary By rating2", 
+                                 style = "table1",
+                                 autonum = run_num_t)) %>%
+  body_add_flextable(value = tran_kable1(property$summary1[1], 7.5)) %>%
+  
+  body_add_caption(block_caption("Summary By Label", 
+                                 style = "table1",
+                                 autonum = run_num_t)) %>%
+  body_add_flextable(value = tran_kable1(property$summary2[1], 7.5)) %>%
+  
+  body_add_caption(block_caption("Top 10", 
+                                 style = "table1",
+                                 autonum = run_num_t)) %>%
+  body_add_flextable(value = tran_kable1(property$top[1], 7.5)) %>%
+  
+  body_add_caption(block_caption("Bottom 10", 
+                                 style = "table1",
+                                 autonum = run_num_t)) %>%
+  body_add_flextable(value = tran_kable1(property$bottom[1], 7.5)) %>%
+  
+  body_add_caption(block_caption("Top 10 MTD", 
+                                 style = "table1",
+                                 autonum = run_num_t)) %>%
+  body_add_flextable(value = tran_kable1(property$top_MTD[1], 7.5)) %>%
+  
+  body_add_caption(block_caption("Bottom 10 MTD", 
+                                 style = "table1",
+                                 autonum = run_num_t)) %>%
+  body_add_flextable(value = tran_kable1(property$bottom_MTD[1], 7.5)) %>%
+  
+  body_add_caption(block_caption("Top 10 YTD", 
+                                 style = "table1",
+                                 autonum = run_num_t)) %>%
+  body_add_flextable(value = tran_kable1(property$top_YTD[1], 7.5)) %>%
+  
+  body_add_caption(block_caption("Bottom 10 YTD", 
+                                 style = "table1",
+                                 autonum = run_num_t)) %>%
+  body_add_flextable(value = tran_kable1(property$bottom_YTD[1], 7.5)) %>%
+  
+  
+  body_add_par("3)Duration Matrix", style = "heading 3") %>%
+  body_add_caption(block_caption("Duration Matrix for price_chg By Label", 
+                                 style = "table1",
+                                 autonum = run_num_t)) %>%
+  body_add_flextable(value = tran_kable3(property$summary4[1], 7.5)) %>%
+  
+  body_add_caption(block_caption("Duration Matrix for YTM By Label", 
+                                 style = "table1",
+                                 autonum = run_num_t)) %>%
+  body_add_flextable(value = tran_kable3(property$summary6[1], 7.5)) %>%
+  
+  body_add_caption(block_caption("Duration Matrix for price_chg By rating2", 
+                                 style = "table1",
+                                 autonum = run_num_t)) %>%
+  body_add_flextable(value = tran_kable3(property$summary8[1], 7.5)) %>%
+  
+  body_add_caption(block_caption("Duration Matrix for YTM By rating2", 
+                                 style = "table1",
+                                 autonum = run_num_t)) %>%
+  body_add_flextable(value = tran_kable3(property$summary10[1], 7.5)) %>%
+  
+  
+  
+  body_add_par("3.IG Corporate", style = "heading 2") %>%
+  body_add_par("1)Index Review", style = "heading 3") %>%
+  body_add_caption(block_caption("Return & Valuation", 
+                                 style = "chart1",
+                                 autonum = run_num)) %>%
+  body_add_gg(value = ggarrange(IG$return, IG$spread, 
+                                ncol = 2, nrow = 1), style = "left",
+              width = 7.5, height = 3) %>%
+  
+  body_add_gg(value = ggarrange(IG$yield, IG$DTS, 
+                                ncol = 2, nrow = 1), style = "left",
+              width = 7.5, height = 3) %>%
+  
+  
+  body_add_par("2)IG Corporate Summary", style = "heading 3") %>%
+  body_add_caption(block_caption("Summary By rating2", 
+                                 style = "table1",
+                                 autonum = run_num_t)) %>%
+  body_add_flextable(value = tran_kable1(IG$summary1[1], 7.5)) %>%
+  
+  body_add_caption(block_caption("Summary By Label", 
+                                 style = "table1",
+                                 autonum = run_num_t)) %>%
+  body_add_flextable(value = tran_kable1(IG$summary2[1], 7.5)) %>%
+  
+  body_add_caption(block_caption("Top 10", 
+                                 style = "table1",
+                                 autonum = run_num_t)) %>%
+  body_add_flextable(value = tran_kable1(IG$top[1], 7.5)) %>%
+  
+  body_add_caption(block_caption("Bottom 10", 
+                                 style = "table1",
+                                 autonum = run_num_t)) %>%
+  body_add_flextable(value = tran_kable1(IG$bottom[1], 7.5)) %>%
+  
+  body_add_caption(block_caption("Top 10 MTD", 
+                                 style = "table1",
+                                 autonum = run_num_t)) %>%
+  body_add_flextable(value = tran_kable1(IG$top_MTD[1], 7.5)) %>%
+  
+  body_add_caption(block_caption("Bottom 10 MTD", 
+                                 style = "table1",
+                                 autonum = run_num_t)) %>%
+  body_add_flextable(value = tran_kable1(IG$bottom_MTD[1], 7.5)) %>%
+  
+  body_add_caption(block_caption("Top 10 YTD", 
+                                 style = "table1",
+                                 autonum = run_num_t)) %>%
+  body_add_flextable(value = tran_kable1(IG$top_YTD[1], 7.5)) %>%
+  
+  body_add_caption(block_caption("Bottom 10 YTD", 
+                                 style = "table1",
+                                 autonum = run_num_t)) %>%
+  body_add_flextable(value = tran_kable1(IG$bottom_YTD[1], 7.5)) %>%
+  
+  
+  body_add_par("3)Duration Matrix", style = "heading 3") %>%
+  body_add_caption(block_caption("Duration Matrix for spread_chg By Label", 
+                                 style = "table1",
+                                 autonum = run_num_t)) %>%
+  body_add_flextable(value = tran_kable2(IG$summary3[1], 7.5)) %>%
+  
+  body_add_caption(block_caption("Duration Matrix for spread By Label", 
+                                 style = "table1",
+                                 autonum = run_num_t)) %>%
+  body_add_flextable(value = tran_kable2(IG$summary5[1], 7.5)) %>%
+  
+  body_add_caption(block_caption("Duration Matrix for spread_chg By rating2", 
+                                 style = "table1",
+                                 autonum = run_num_t)) %>%
+  body_add_flextable(value = tran_kable2(IG$summary7[1], 7.5)) %>%
+  
+  body_add_caption(block_caption("Duration Matrix for spread By rating2", 
+                                 style = "table1",
+                                 autonum = run_num_t)) %>%
+  body_add_flextable(value = tran_kable2(IG$summary9[1], 7.5)) %>%
+  
+  
+  
+  body_add_par("4.Financials", style = "heading 2") %>%
+  body_add_par("1)Index Review", style = "heading 3") %>%
+  body_add_caption(block_caption("Return & Valuation", 
+                                 style = "chart1",
+                                 autonum = run_num)) %>%
+  body_add_gg(value = ggarrange(Financials$return, Financials$spread, 
+                                ncol = 2, nrow = 1), style = "left",
+              width = 7.5, height = 3) %>%
+  
+  body_add_gg(value = ggarrange(Financials$yield, Financials$DTS, 
+                                ncol = 2, nrow = 1), style = "left",
+              width = 7.5, height = 3) %>%
+  
+  
+  body_add_par("2)Financials Summary", style = "heading 3") %>%
+  body_add_caption(block_caption("Summary By rating2", 
+                                 style = "table1",
+                                 autonum = run_num_t)) %>%
+  body_add_flextable(value = tran_kable1(Financials$summary1[1], 7.5)) %>%
+  
+  body_add_caption(block_caption("Summary By Label", 
+                                 style = "table1",
+                                 autonum = run_num_t)) %>%
+  body_add_flextable(value = tran_kable1(Financials$summary2[1], 7.5)) %>%
+  
+  body_add_caption(block_caption("Top 10", 
+                                 style = "table1",
+                                 autonum = run_num_t)) %>%
+  body_add_flextable(value = tran_kable1(Financials$top[1], 7.5)) %>%
+  
+  body_add_caption(block_caption("Bottom 10", 
+                                 style = "table1",
+                                 autonum = run_num_t)) %>%
+  body_add_flextable(value = tran_kable1(Financials$bottom[1], 7.5)) %>%
+  
+  body_add_caption(block_caption("Top 10 MTD", 
+                                 style = "table1",
+                                 autonum = run_num_t)) %>%
+  body_add_flextable(value = tran_kable1(Financials$top_MTD[1], 7.5)) %>%
+  
+  body_add_caption(block_caption("Bottom 10 MTD", 
+                                 style = "table1",
+                                 autonum = run_num_t)) %>%
+  body_add_flextable(value = tran_kable1(Financials$bottom_MTD[1], 7.5)) %>%
+  
+  body_add_caption(block_caption("Top 10 YTD", 
+                                 style = "table1",
+                                 autonum = run_num_t)) %>%
+  body_add_flextable(value = tran_kable1(Financials$top_YTD[1], 7.5)) %>%
+  
+  body_add_caption(block_caption("Bottom 10 YTD", 
+                                 style = "table1",
+                                 autonum = run_num_t)) %>%
+  body_add_flextable(value = tran_kable1(Financials$bottom_YTD[1], 7.5)) %>%
+  
+  
+  body_add_par("3)Duration Matrix", style = "heading 3") %>%
+  body_add_caption(block_caption("Duration Matrix for spread_chg By Label", 
+                                 style = "table1",
+                                 autonum = run_num_t)) %>%
+  body_add_flextable(value = tran_kable2(Financials$summary3[1], 7.5)) %>%
+  
+  body_add_caption(block_caption("Duration Matrix for spread By Label", 
+                                 style = "table1",
+                                 autonum = run_num_t)) %>%
+  body_add_flextable(value = tran_kable2(Financials$summary5[1], 7.5)) %>%
+  
+  body_add_caption(block_caption("Duration Matrix for spread_chg By rating2", 
+                                 style = "table1",
+                                 autonum = run_num_t)) %>%
+  body_add_flextable(value = tran_kable2(Financials$summary7[1], 7.5)) %>%
+  
+  body_add_caption(block_caption("Duration Matrix for spread By rating2", 
+                                 style = "table1",
+                                 autonum = run_num_t)) %>%
+  body_add_flextable(value = tran_kable2(Financials$summary9[1], 7.5)) %>%
+  
+  
+  
+  body_add_par("5.LGFV", style = "heading 2") %>%
+  body_add_par("1)Index Review", style = "heading 3") %>%
+  body_add_caption(block_caption("Return & Valuation", 
+                                 style = "chart1",
+                                 autonum = run_num)) %>%
+  body_add_gg(value = ggarrange(IG$return, IG$spread, 
+                                ncol = 2, nrow = 1), style = "left",
+              width = 7.5, height = 3) %>%
+  
+  body_add_gg(value = ggarrange(IG$yield, IG$DTS, 
+                                ncol = 2, nrow = 1), style = "left",
+              width = 7.5, height = 3) %>%
+  
+  
+  body_add_par("2)LGFV Summary", style = "heading 3") %>%
+  body_add_caption(block_caption("Summary By rating2", 
+                                 style = "table1",
+                                 autonum = run_num_t)) %>%
+  body_add_flextable(value = tran_kable1(LGFV$summary1[1], 7.5)) %>%
+  
+  body_add_caption(block_caption("Summary of price_chg By rating2", 
+                                 style = "table1",
+                                 autonum = run_num_t)) %>%
+  body_add_flextable(value = tran_kable2(LGFV$summary8[1], 7.5)) %>%
+  
+  body_add_caption(block_caption("Summary of YTM By rating2", 
+                                 style = "table1",
+                                 autonum = run_num_t)) %>%
+  body_add_flextable(value = tran_kable2(LGFV$summary10[1], 7.5)) %>%
+  
+  body_add_caption(block_caption("Top 10", 
+                                 style = "table1",
+                                 autonum = run_num_t)) %>%
+  body_add_flextable(value = tran_kable1(LGFV$top[1], 7.5)) %>%
+  
+  body_add_caption(block_caption("Bottom 10", 
+                                 style = "table1",
+                                 autonum = run_num_t)) %>%
+  body_add_flextable(value = tran_kable1(LGFV$bottom[1], 7.5)) %>%
+  
+  body_add_caption(block_caption("Top 10 MTD", 
+                                 style = "table1",
+                                 autonum = run_num_t)) %>%
+  body_add_flextable(value = tran_kable1(LGFV$top_MTD[1], 7.5)) %>%
+  
+  body_add_caption(block_caption("Bottom 10 MTD", 
+                                 style = "table1",
+                                 autonum = run_num_t)) %>%
+  body_add_flextable(value = tran_kable1(LGFV$bottom_MTD[1], 7.5)) %>%
+  
+  body_add_caption(block_caption("Top 10 YTD", 
+                                 style = "table1",
+                                 autonum = run_num_t)) %>%
+  body_add_flextable(value = tran_kable1(LGFV$top_YTD[1], 7.5)) %>%
+  
+  body_add_caption(block_caption("Bottom 10 YTD", 
+                                 style = "table1",
+                                 autonum = run_num_t)) %>%
+  body_add_flextable(value = tran_kable1(LGFV$bottom_YTD[1], 7.5))%>%
+  
+  
+  
+  body_add_par("6.Industry", style = "heading 2") %>%
+  body_add_par("1)Index Review", style = "heading 3") %>%
+  body_add_caption(block_caption("Return & Valuation", 
+                                 style = "chart1",
+                                 autonum = run_num)) %>%
+  body_add_gg(value = ggarrange(IG$return, IG$spread, 
+                                ncol = 2, nrow = 1), style = "left",
+              width = 7.5, height = 3) %>%
+  
+  body_add_gg(value = ggarrange(IG$yield, IG$DTS, 
+                                ncol = 2, nrow = 1), style = "left",
+              width = 7.5, height = 3) %>%
+  
+  
+  body_add_par("2)Industry Summary", style = "heading 3") %>%
+  body_add_caption(block_caption("Summary By rating2", 
+                                 style = "table1",
+                                 autonum = run_num_t)) %>%
+  body_add_flextable(value = tran_kable1(Industry$summary1[1], 7.5)) %>%
+  
+  body_add_caption(block_caption("Summary of price_chg By rating2", 
+                                 style = "table1",
+                                 autonum = run_num_t)) %>%
+  body_add_flextable(value = tran_kable2(Industry$summary8[1], 7.5)) %>%
+  
+  body_add_caption(block_caption("Summary of YTM By rating2", 
+                                 style = "table1",
+                                 autonum = run_num_t)) %>%
+  body_add_flextable(value = tran_kable2(Industry$summary10[1], 7.5)) %>%
+  
+  body_add_caption(block_caption("Top 10", 
+                                 style = "table1",
+                                 autonum = run_num_t)) %>%
+  body_add_flextable(value = tran_kable1(Industry$top[1], 7.5)) %>%
+  
+  body_add_caption(block_caption("Bottom 10", 
+                                 style = "table1",
+                                 autonum = run_num_t)) %>%
+  body_add_flextable(value = tran_kable1(Industry$bottom[1], 7.5)) %>%
+  
+  body_add_caption(block_caption("Top 10 MTD", 
+                                 style = "table1",
+                                 autonum = run_num_t)) %>%
+  body_add_flextable(value = tran_kable1(Industry$top_MTD[1], 7.5)) %>%
+  
+  body_add_caption(block_caption("Bottom 10 MTD", 
+                                 style = "table1",
+                                 autonum = run_num_t)) %>%
+  body_add_flextable(value = tran_kable1(Industry$bottom_MTD[1], 7.5)) %>%
+  
+  body_add_caption(block_caption("Top 10 YTD", 
+                                 style = "table1",
+                                 autonum = run_num_t)) %>%
+  body_add_flextable(value = tran_kable1(Industry$top_YTD[1], 7.5)) %>%
+  
+  body_add_caption(block_caption("Bottom 10 YTD", 
+                                 style = "table1",
+                                 autonum = run_num_t)) %>%
+  body_add_flextable(value = tran_kable1(Industry$bottom_YTD[1], 7.5)) %>%
+  
+  
+  body_add_par("7.Bank Capital", style = "heading 2") %>%
+  body_add_par("1)Index Review", style = "heading 3") %>%
+  body_add_caption(block_caption("Return & Valuation", 
+                                 style = "chart1",
+                                 autonum = run_num)) %>%
+  body_add_gg(value = ggarrange(AT1$return, Tier2$return, 
+                                ncol = 2, nrow = 1), style = "left",
+              width = 7.5, height = 3) %>%
+  body_add_gg(value = ggarrange(AT1$spread, Tier2$spread, 
+                                ncol = 2, nrow = 1), style = "left",
+              width = 7.5, height = 3) %>%
+  body_add_gg(value = ggarrange(AT1$yield, Tier2$yield, 
+                                ncol = 2, nrow = 1), style = "left",
+              width = 7.5, height = 3) %>%
+  body_add_gg(value = plot4, style = "left", width = 3.75, height = 3) %>%
+  
+  
+  body_add_par("2)AT1 Summary", style = "heading 3") %>%
+  body_add_caption(block_caption("Summary By rating2", 
+                                 style = "table1",
+                                 autonum = run_num_t)) %>%
+  body_add_flextable(value = tran_kable1(AT1$summary1[1], 7.5)) %>%
+  
+  body_add_caption(block_caption("Summary of price_chg By rating2", 
+                                 style = "table1",
+                                 autonum = run_num_t)) %>%
+  body_add_flextable(value = tran_kable2(AT1$summary8[1], 7.5)) %>%
+  
+  body_add_caption(block_caption("Summary of YTM By rating2", 
+                                 style = "table1",
+                                 autonum = run_num_t)) %>%
+  body_add_flextable(value = tran_kable2(AT1$summary10[1], 7.5)) %>%
+  
+  body_add_caption(block_caption("Top 10", 
+                                 style = "table1",
+                                 autonum = run_num_t)) %>%
+  body_add_flextable(value = tran_kable1(AT1$top[1], 7.5)) %>%
+  
+  body_add_caption(block_caption("Bottom 10", 
+                                 style = "table1",
+                                 autonum = run_num_t)) %>%
+  body_add_flextable(value = tran_kable1(AT1$bottom[1], 7.5)) %>%
+  
+  body_add_caption(block_caption("Top 10 MTD", 
+                                 style = "table1",
+                                 autonum = run_num_t)) %>%
+  body_add_flextable(value = tran_kable1(AT1$top_MTD[1], 7.5)) %>%
+  
+  body_add_caption(block_caption("Bottom 10 MTD", 
+                                 style = "table1",
+                                 autonum = run_num_t)) %>%
+  body_add_flextable(value = tran_kable1(AT1$bottom_MTD[1], 7.5)) %>%
+  
+  body_add_caption(block_caption("Top 10 YTD", 
+                                 style = "table1",
+                                 autonum = run_num_t)) %>%
+  body_add_flextable(value = tran_kable1(AT1$top_YTD[1], 7.5)) %>%
+  
+  body_add_caption(block_caption("Bottom 10 YTD", 
+                                 style = "table1",
+                                 autonum = run_num_t)) %>%
+  body_add_flextable(value = tran_kable1(AT1$bottom_YTD[1], 7.5)) %>%
+  
+  
+  body_add_par("3)Tier2 Summary", style = "heading 3") %>%
+  body_add_caption(block_caption("Summary By rating2", 
+                                 style = "table1",
+                                 autonum = run_num_t)) %>%
+  body_add_flextable(value = tran_kable1(Tier2$summary1[1], 7.5)) %>%
+  
+  body_add_caption(block_caption("Summary of price_chg By rating2", 
+                                 style = "table1",
+                                 autonum = run_num_t)) %>%
+  body_add_flextable(value = tran_kable2(Tier2$summary8[1], 7.5)) %>%
+  
+  body_add_caption(block_caption("Summary of YTM By rating2", 
+                                 style = "table1",
+                                 autonum = run_num_t)) %>%
+  body_add_flextable(value = tran_kable2(Tier2$summary10[1], 7.5)) %>%
+  
+  body_add_caption(block_caption("Top 10", 
+                                 style = "table1",
+                                 autonum = run_num_t)) %>%
+  body_add_flextable(value = tran_kable1(Tier2$top[1], 7.5)) %>%
+  
+  body_add_caption(block_caption("Bottom 10", 
+                                 style = "table1",
+                                 autonum = run_num_t)) %>%
+  body_add_flextable(value = tran_kable1(Tier2$bottom[1], 7.5)) %>%
+  
+  body_add_caption(block_caption("Top 10 MTD", 
+                                 style = "table1",
+                                 autonum = run_num_t)) %>%
+  body_add_flextable(value = tran_kable1(Tier2$top_MTD[1], 7.5)) %>%
+  
+  body_add_caption(block_caption("Bottom 10 MTD", 
+                                 style = "table1",
+                                 autonum = run_num_t)) %>%
+  body_add_flextable(value = tran_kable1(Tier2$bottom_MTD[1], 7.5)) %>%
+  
+  body_add_caption(block_caption("Top 10 YTD", 
+                                 style = "table1",
+                                 autonum = run_num_t)) %>%
+  body_add_flextable(value = tran_kable1(Tier2$top_YTD[1], 7.5)) %>%
+  
+  body_add_caption(block_caption("Bottom 10 YTD", 
+                                 style = "table1",
+                                 autonum = run_num_t)) %>%
+  body_add_flextable(value = tran_kable1(Tier2$bottom_YTD[1], 7.5)) %>%
+  
+  
+  body_add_par("8.EM", style = "heading 2") %>%
+  body_add_par("1)Index Review", style = "heading 3") %>%
+  body_add_caption(block_caption("Return & Valuation", 
+                                 style = "chart1",
+                                 autonum = run_num)) %>%
+  body_add_gg(value = ggarrange(EM$return, EM$spread, 
+                                ncol = 2, nrow = 1), style = "left",
+              width = 7.5, height = 3) %>%
+  
+  body_add_gg(value = ggarrange(EM$yield, EM$DTS, 
+                                ncol = 2, nrow = 1), style = "left",
+              width = 7.5, height = 3) %>%
+  
+  
+  body_add_par("2)EM Summary", style = "heading 3") %>%
+  body_add_caption(block_caption("Summary By rating2", 
+                                 style = "table1",
+                                 autonum = run_num_t)) %>%
+  body_add_flextable(value = tran_kable1(EM$summary1[1], 7.5)) %>%
+  
+  body_add_caption(block_caption("Summary By Label", 
+                                 style = "table1",
+                                 autonum = run_num_t)) %>%
+  body_add_flextable(value = tran_kable1(EM$summary2[1], 7.5)) %>%
+  
+  body_add_caption(block_caption("Top 10", 
+                                 style = "table1",
+                                 autonum = run_num_t)) %>%
+  body_add_flextable(value = tran_kable1(EM$top[1], 7.5)) %>%
+  
+  body_add_caption(block_caption("Bottom 10", 
+                                 style = "table1",
+                                 autonum = run_num_t)) %>%
+  body_add_flextable(value = tran_kable1(EM$bottom[1], 7.5)) %>%
+  
+  body_add_caption(block_caption("Top 10 MTD", 
+                                 style = "table1",
+                                 autonum = run_num_t)) %>%
+  body_add_flextable(value = tran_kable1(EM$top_MTD[1], 7.5)) %>%
+  
+  body_add_caption(block_caption("Bottom 10 MTD", 
+                                 style = "table1",
+                                 autonum = run_num_t)) %>%
+  body_add_flextable(value = tran_kable1(EM$bottom_MTD[1], 7.5)) %>%
+  
+  body_add_caption(block_caption("Top 10 YTD", 
+                                 style = "table1",
+                                 autonum = run_num_t)) %>%
+  body_add_flextable(value = tran_kable1(EM$top_YTD[1], 7.5)) %>%
+  
+  body_add_caption(block_caption("Bottom 10 YTD", 
+                                 style = "table1",
+                                 autonum = run_num_t)) %>%
+  body_add_flextable(value = tran_kable1(EM$bottom_YTD[1], 7.5)) %>%
+  
+  
+  body_add_par("3)Duration Matrix", style = "heading 3") %>%
+  body_add_caption(block_caption("Duration Matrix for spread_chg By Label", 
+                                 style = "table1",
+                                 autonum = run_num_t)) %>%
+  body_add_flextable(value = tran_kable2(EM$summary3[1], 7.5)) %>%
+  
+  body_add_caption(block_caption("Duration Matrix for spread By Label", 
+                                 style = "table1",
+                                 autonum = run_num_t)) %>%
+  body_add_flextable(value = tran_kable2(EM$summary5[1], 7.5)) %>%
+  
+  body_add_caption(block_caption("Duration Matrix for spread_chg By rating2", 
+                                 style = "table1",
+                                 autonum = run_num_t)) %>%
+  body_add_flextable(value = tran_kable2(EM$summary7[1], 7.5)) %>%
+  
+  body_add_caption(block_caption("Duration Matrix for spread By rating2", 
+                                 style = "table1",
+                                 autonum = run_num_t)) %>%
+  body_add_flextable(value = tran_kable2(EM$summary9[1], 7.5))
+
+
+
+# 3. 输出 -------------------------------------------------------------------
+print(weekly_report, target = "word_reports/test.docx")
+
+
+

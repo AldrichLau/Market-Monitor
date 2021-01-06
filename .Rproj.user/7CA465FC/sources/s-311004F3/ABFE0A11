@@ -1,0 +1,24 @@
+{
+    "id": "ABFE0A11",
+    "path": "~/GitHub/Market-Monitor/manipulate database.R",
+    "project_path": "manipulate database.R",
+    "type": "r_source",
+    "hash": "0",
+    "contents": "",
+    "dirty": false,
+    "created": 1609901743740.0,
+    "source_on_save": false,
+    "relative_order": 2,
+    "properties": {
+        "cursorPosition": "20,5",
+        "scrollLine": "0"
+    },
+    "folds": "",
+    "lastKnownWriteTime": 1609917628,
+    "encoding": "GB2312",
+    "collab_server": "",
+    "source_window": "",
+    "last_content_update": 1609917628187,
+    "read_only": false,
+    "read_only_alternatives": []
+}

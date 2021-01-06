@@ -1,0 +1,43 @@
+"0","library(flexdashboard)"
+"2","Registered S3 methods overwritten by 'htmltools':
+  method               from         
+  print.html           tools:rstudio
+  print.shiny.tag      tools:rstudio
+  print.shiny.tag.list tools:rstudio
+"
+"0","library(DT)"
+"2","Registered S3 method overwritten by 'htmlwidgets':
+  method           from         
+  print.htmlwidget tools:rstudio
+"
+"0","library(formattable)"
+"0","library(treemap)"
+"2","Registered S3 method overwritten by 'data.table':
+  method           from
+  print.data.table     
+"
+"0","library(d3treeR)"
+"0","library(knitr)"
+"0","library(lubridate)"
+"2","
+Attaching package: ‘lubridate’
+
+"
+"2","The following objects are masked from ‘package:base’:
+
+    date, intersect, setdiff, union
+
+"
+"0","if (dir.exists(""materials"")) {} else {dir.create(""materials"")}"
+"1","NULL
+"
+"0","opts_chunk$set(echo = FALSE,"
+"0","               out.width = ""50%"", "
+"0","               fig.show=""hold"")"
+"0","knitr::opts_chunk$set(echo = FALSE)"
+"0",""
+"0","#con2 <- dbConnect(SQLite(), ""sample.sqlite"")"
+"0","con2 <- dbConnect(SQLite(), ""NEW_CNUSD.sqlite"")"
+"2","Error in dbConnect(SQLite(), ""NEW_CNUSD.sqlite"") : 
+  could not find function ""dbConnect""
+"

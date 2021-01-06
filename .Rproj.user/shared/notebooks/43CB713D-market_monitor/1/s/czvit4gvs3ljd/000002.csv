@@ -1,0 +1,6 @@
+"0","if (dbExistsTable(con2, ""hist_data"")) {update_newcnusd(con1, con2)
+} else {write_newcnusd(con1, con2)}
+"
+"2","Warning:"
+"2"," call dbDisconnect() when finished working with a connection
+"
