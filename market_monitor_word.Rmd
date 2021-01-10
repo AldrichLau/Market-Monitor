@@ -6,7 +6,6 @@ output: officedown::rdocx_document
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE, fig.cap = TRUE)
-# library(flexdashboard)
 library(DT)
 library(formattable)
 library(treemap)
@@ -21,11 +20,10 @@ library(flextable)
 library(rvest)
 
 if (dir.exists("materials")) {} else {dir.create("materials")}
-  
+
 source("market monitor dependency.R")
 source("word_report_dependency.R")
 
-#con2 <- dbConnect(SQLite(), "sample.sqlite")
 con2 <- dbConnect(SQLite(), "NEW_CNUSD.sqlite")
 
 # set the dates params
@@ -90,7 +88,6 @@ plot2 <- metric_plot2(index_prices$Label, "Label", "low beta", "high beta", "yie
 plot4 <- metric_plot2(index_prices$cat, "Category", "Tier 2", "AT1", "spread")
 
 plot3 <- generic_plot(index_prices$generic)
-
 
 ```
 

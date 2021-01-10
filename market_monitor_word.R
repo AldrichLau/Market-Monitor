@@ -12,7 +12,7 @@ library(ggpubr)
 library(flextable)
 library(rvest)
 
-if (dir.exists("materials")) {} else {dir.create("materials")}
+# if (dir.exists("materials")) {} else {dir.create("materials")}
 
 source("market monitor dependency.R")
 source("word_report_dependency.R")
@@ -47,8 +47,9 @@ index_generic_wt <- dbGetQuery(con2, sprintf("SELECT date, year, month, ID, gene
 index_generic_price <- dbGetQuery(con2, "SELECT date, generic, YTM, spread, duration, DTS, index_price_net, index_price_total, cal_method FROM index_generic_price WHERE date >= '2019-06-30'")
 
 index_sum_table_Label <- dbGetQuery(con2, sprintf("SELECT date, cat AS Category, Label, YTM, spread, duration, DTS, index_price_net, index_price_total FROM index_sum_table_Label WHERE date in ('%s', '%s', '%s', '%s')", date_yr, date_mt, date_wk, date_end))
-
+index_sum_table_Label1 <- dbGetQuery(con2, "SELECT date, cat AS Category, Label, YTM, spread, duration, DTS, index_price_net, index_price_total FROM index_sum_table_Label")
 index_sum_table_rating2 <- dbGetQuery(con2, sprintf("SELECT date, cat AS Category, rating2, YTM, spread, duration, DTS, index_price_net, index_price_total FROM index_sum_table_rating2 WHERE date in ('%s', '%s', '%s', '%s')", date_yr, date_mt, date_wk, date_end))
+index_sum_table_rating21 <- dbGetQuery(con2, "SELECT date, cat AS Category, rating2, YTM, spread, duration, DTS, index_price_net, index_price_total FROM index_sum_table_rating2")
 
 index_wts <- list(cat = index_cat_wt, rating2 = index_rating2_wt, Label = index_Label_wt, generic = index_generic_wt)
 index_prices <- list(cat = index_cat_price, rating2 = index_rating2_price, Label = index_Label_price, generic = index_generic_price)
@@ -87,14 +88,20 @@ plot3 <- generic_plot(index_prices$generic)
 # 1. 市场表现回顾 ---------------------------------------------------------------
 run_num <- run_autonum(seq_id = "fig", pre_label = "图")
 run_num_t <- run_autonum(seq_id = "table", pre_label = "表")
+img_width1 = 6.5
+img_width2 = 3.25
+table_width = 6.5
+# set_flextable_defaults(
+#   font.family = "Calibri", font.size = 10, font.color = "black",
+#   text.align = "centered")
+#   # theme_fun = "theme_vanilla")
 
 
 weekly_report <- read_docx(path = "word_reports/template1.docx") %>%
   body_add_par("周会", style = "Title") %>%
-  body_add_par("目录", style = "centered") %>%
-  body_add_toc(level = 3) %>%
-  
-  body_add_break() %>% 
+  # body_add_par("目录", style = "centered") %>%
+  # body_add_toc(level = 3) %>%
+  # body_add_break() %>% 
   
   body_add_par("一、主要资产类别回顾", style = "heading 1") %>%
   body_add_caption(block_caption("主要资产近一周涨跌幅汇总", 
@@ -102,641 +109,240 @@ weekly_report <- read_docx(path = "word_reports/template1.docx") %>%
                                  autonum = run_num)) %>%
   body_add_img(src = "materials/主要资产类别回顾.png", 
                width = 7.5, height = 7.65,
-               style = "centered") %>%
-  body_add_break()
+               style = "centered")
 
-
-
+  
 # 2. 板块回顾---------------------------------------------------------------------
+
+## 2.1 指数回顾 -------------------------------------------------------------
 weekly_report <- weekly_report %>%
-  body_add_par("二.主要板块回顾", style = "heading 1") %>%
-  
-  
-  
-  body_add_par("1.总体概览", style = "heading 2") %>%
-  body_add_par("1)Index Review", style = "heading 3") %>%
-  body_add_caption(block_caption("Return & Valuation", 
+  body_add_par("二. 主要板块回顾", style = "heading 1") %>%
+  body_add_par("1. 全市场概览", style = "heading 2") %>%
+  body_add_par("1) 指数与估值", style = "heading 3") %>%
+  body_add_caption(block_caption("收益与估值", 
                                  style = "chart1",
                                  autonum = run_num)) %>%
-  body_add_gg(value = ggarrange(Market$plot1, Market$plot2, 
-                                ncol = 2, nrow = 1), style = "left",
-              width = 7.5, height = 3) %>%
+  add_graph(Market$plot1, Market$plot2, img_width1, 3, "centered") %>%
+  add_graph(Market$plot3, Market$plot4, img_width1, 3, "centered") %>%
   
-  body_add_gg(value = ggarrange(Market$plot3, Market$plot4, 
-                                ncol = 2, nrow = 1), style = "left",
-              width = 7.5, height = 3) %>%
-  
-  body_add_par("2)Market Summary", style = "heading 3") %>%
-  body_add_caption(block_caption("Market Summary By Category", 
-                                 style = "table1",
-                                 autonum = run_num_t)) %>%
-  body_add_flextable(value = tran_kable1(Market$summary1[1], 7.5)) %>%
-  
-  body_add_caption(block_caption("Market Summary By rating2", 
-                                 style = "table1",
-                                 autonum = run_num_t)) %>%
-  body_add_flextable(value = tran_kable1(Market$summary2[1], 7.5)) %>%
-  
-  body_add_caption(block_caption("Top 10", 
-                                 style = "table1",
-                                 autonum = run_num_t)) %>%
-  body_add_flextable(value = tran_kable1(Market$top[1], 7.5)) %>%
-  
-  body_add_caption(block_caption("Bottom 10", 
-                                 style = "table1",
-                                 autonum = run_num_t)) %>%
-  body_add_flextable(value = tran_kable1(Market$bottom[1], 7.5)) %>%
-  
-  body_add_caption(block_caption("Top 10 MTD", 
-                                 style = "table1",
-                                 autonum = run_num_t)) %>%
-  body_add_flextable(value = tran_kable1(Market$top_MTD[1], 7.5)) %>%
-  
-  body_add_caption(block_caption("Bottom 10 MTD", 
-                                 style = "table1",
-                                 autonum = run_num_t)) %>%
-  body_add_flextable(value = tran_kable1(Market$bottom_MTD[1], 7.5)) %>%
-  
-  body_add_caption(block_caption("Top 10 YTD", 
-                                 style = "table1",
-                                 autonum = run_num_t)) %>%
-  body_add_flextable(value = tran_kable1(Market$top_YTD[1], 7.5)) %>%
-  
-  body_add_caption(block_caption("Bottom 10 YTD", 
-                                 style = "table1",
-                                 autonum = run_num_t)) %>%
-  body_add_flextable(value = tran_kable1(Market$bottom_YTD[1], 7.5)) %>%
-  
-  body_add_par("3)Duration Matrix", style = "heading 3") %>%
-  body_add_caption(block_caption("Duration Matrix for price_chg By Category", 
-                                 style = "table1",
-                                 autonum = run_num_t)) %>%
-  body_add_flextable(value = tran_kable2(Market$summary3[1], 7.5)) %>%
-  
-  body_add_caption(block_caption("Duration Matrix for spread By Category", 
-                                 style = "table1",
-                                 autonum = run_num_t)) %>%
-  body_add_flextable(value = tran_kable2(Market$summary4[1], 7.5)) %>%
+  add_table1(index_cat_price, cat="", group="Category", table_width, 
+             caption_title = "分板块估值", "table1", table_num = run_num_t) %>%
+  add_table1(index_rating2_price, cat="", group="rating2", table_width, 
+             caption_title = "分评级估值", "table1", table_num = run_num_t) %>%
+  add_table1(index_Label_price, cat="", group="Label", table_width, 
+             caption_title = "分类别估值", "table1", table_num = run_num_t) %>%
   
   
+  body_add_par("2) 分组数据概览", style = "heading 3") %>%
+  add_table(Market$summary1[1], "", "", table_width, "按类别分组",
+            table_style = "table1", table_num = run_num_t, type=1) %>%
+  add_table(Market$summary2[1], "", "", table_width, "按综合评级分组",
+            table_style = "table1", table_num = run_num_t, type=1) %>%
+  add_table(Market$top[1], Market$top_MTD[1], Market$top_YTD[1],
+            table_width, "涨幅前十", "table1", run_num_t, 2) %>%
+  add_table(Market$bottom[1], Market$bottom_MTD[1], Market$bottom_YTD[1],
+            table_width, "跌幅前十", "table1", run_num_t, 2)
+
+
+
+## 2.2 HY Property-------------------------------------------------------------------------
+
+weekly_report <- weekly_report %>%
+  body_add_par("2. HY Property", style = "heading 2") %>%
   
-  body_add_par("2.HY Property", style = "heading 2") %>%
-  
-  body_add_par("1)Index Review", style = "heading 3") %>%
-  body_add_caption(block_caption("Return & Valuation", 
+  body_add_par("1) 指数与估值", style = "heading 3") %>%
+  body_add_caption(block_caption("收益与估值", 
                                  style = "chart1",
                                  autonum = run_num)) %>%
-  body_add_gg(value = ggarrange(property$return, property$spread, 
-                                ncol = 2, nrow = 1), style = "left",
-              width = 7.5, height = 3) %>%
+  add_graph(property$return, property$spread, img_width1, 3, "centered") %>%
+  add_graph(property$yield, property$DTS, img_width1, 3, "centered") %>%
+  add_graph(plot1, plot2, img_width1, 3, "centered") %>%
   
-  body_add_gg(value = ggarrange(property$yield, property$DTS, 
-                                ncol = 2, nrow = 1), style = "left",
-              width = 7.5, height = 3) %>%
+  add_table1(index_sum_table_rating21, cat="HY Property", group="rating2", table_width, 
+             caption_title = "分评级估值", "table1", table_num = run_num_t) %>%
+  add_table1(index_sum_table_Label1, cat="HY Property", group="Label", table_width, 
+             caption_title = "分类别估值", "table1", table_num = run_num_t) %>%
+ 
+  body_add_par("2) 分组数据概览", style = "heading 3") %>%
+  add_table(property$summary1[1], "", "", table_width, "按类别分组",
+            table_style = "table1", table_num = run_num_t, type=1) %>%
+  add_table(property$summary2[1], "", "", table_width, "按综合评级分组",
+            table_style = "table1", table_num = run_num_t, type=1) %>%
+  add_table(property$top[1], property$top_MTD[1], property$top_YTD[1],
+            table_width, "涨幅前十", "table1", run_num_t, 2) %>%
+  add_table(property$bottom[1], property$bottom_MTD[1], property$bottom_YTD[1],
+            table_width, "跌幅前十", "table1", run_num_t, 2)
   
-  body_add_gg(value = ggarrange(plot1, plot2, 
-                                ncol = 2, nrow = 1), style = "left",
-              width = 7.5, height = 3) %>%
-  
-  
-  body_add_par("2)HY Property Summary", style = "heading 3") %>%
-  body_add_caption(block_caption("Summary By rating2", 
-                                 style = "table1",
-                                 autonum = run_num_t)) %>%
-  body_add_flextable(value = tran_kable1(property$summary1[1], 7.5)) %>%
-  
-  body_add_caption(block_caption("Summary By Label", 
-                                 style = "table1",
-                                 autonum = run_num_t)) %>%
-  body_add_flextable(value = tran_kable1(property$summary2[1], 7.5)) %>%
-  
-  body_add_caption(block_caption("Top 10", 
-                                 style = "table1",
-                                 autonum = run_num_t)) %>%
-  body_add_flextable(value = tran_kable1(property$top[1], 7.5)) %>%
-  
-  body_add_caption(block_caption("Bottom 10", 
-                                 style = "table1",
-                                 autonum = run_num_t)) %>%
-  body_add_flextable(value = tran_kable1(property$bottom[1], 7.5)) %>%
-  
-  body_add_caption(block_caption("Top 10 MTD", 
-                                 style = "table1",
-                                 autonum = run_num_t)) %>%
-  body_add_flextable(value = tran_kable1(property$top_MTD[1], 7.5)) %>%
-  
-  body_add_caption(block_caption("Bottom 10 MTD", 
-                                 style = "table1",
-                                 autonum = run_num_t)) %>%
-  body_add_flextable(value = tran_kable1(property$bottom_MTD[1], 7.5)) %>%
-  
-  body_add_caption(block_caption("Top 10 YTD", 
-                                 style = "table1",
-                                 autonum = run_num_t)) %>%
-  body_add_flextable(value = tran_kable1(property$top_YTD[1], 7.5)) %>%
-  
-  body_add_caption(block_caption("Bottom 10 YTD", 
-                                 style = "table1",
-                                 autonum = run_num_t)) %>%
-  body_add_flextable(value = tran_kable1(property$bottom_YTD[1], 7.5)) %>%
-  
-  
-  body_add_par("3)Duration Matrix", style = "heading 3") %>%
-  body_add_caption(block_caption("Duration Matrix for price_chg By Label", 
-                                 style = "table1",
-                                 autonum = run_num_t)) %>%
-  body_add_flextable(value = tran_kable3(property$summary4[1], 7.5)) %>%
-  
-  body_add_caption(block_caption("Duration Matrix for YTM By Label", 
-                                 style = "table1",
-                                 autonum = run_num_t)) %>%
-  body_add_flextable(value = tran_kable3(property$summary6[1], 7.5)) %>%
-  
-  body_add_caption(block_caption("Duration Matrix for price_chg By rating2", 
-                                 style = "table1",
-                                 autonum = run_num_t)) %>%
-  body_add_flextable(value = tran_kable3(property$summary8[1], 7.5)) %>%
-  
-  body_add_caption(block_caption("Duration Matrix for YTM By rating2", 
-                                 style = "table1",
-                                 autonum = run_num_t)) %>%
-  body_add_flextable(value = tran_kable3(property$summary10[1], 7.5)) %>%
-  
-  
-  
-  body_add_par("3.IG Corporate", style = "heading 2") %>%
-  body_add_par("1)Index Review", style = "heading 3") %>%
-  body_add_caption(block_caption("Return & Valuation", 
+
+## 2.3. IG Corporate ---------------------------------------------------------
+
+weekly_report <- weekly_report %>%
+  body_add_par("3. IG Corporate", style = "heading 2") %>%
+  body_add_par("1) 指数与估值", style = "heading 3") %>%
+  body_add_caption(block_caption("收益与估值", 
                                  style = "chart1",
                                  autonum = run_num)) %>%
-  body_add_gg(value = ggarrange(IG$return, IG$spread, 
-                                ncol = 2, nrow = 1), style = "left",
-              width = 7.5, height = 3) %>%
   
-  body_add_gg(value = ggarrange(IG$yield, IG$DTS, 
-                                ncol = 2, nrow = 1), style = "left",
-              width = 7.5, height = 3) %>%
+  add_graph(IG$return, IG$spread, img_width1, 3, "centered") %>%
+  add_graph(IG$yield, IG$DTS, img_width1, 3, "centered") %>%
   
-  
-  body_add_par("2)IG Corporate Summary", style = "heading 3") %>%
-  body_add_caption(block_caption("Summary By rating2", 
-                                 style = "table1",
-                                 autonum = run_num_t)) %>%
-  body_add_flextable(value = tran_kable1(IG$summary1[1], 7.5)) %>%
-  
-  body_add_caption(block_caption("Summary By Label", 
-                                 style = "table1",
-                                 autonum = run_num_t)) %>%
-  body_add_flextable(value = tran_kable1(IG$summary2[1], 7.5)) %>%
-  
-  body_add_caption(block_caption("Top 10", 
-                                 style = "table1",
-                                 autonum = run_num_t)) %>%
-  body_add_flextable(value = tran_kable1(IG$top[1], 7.5)) %>%
-  
-  body_add_caption(block_caption("Bottom 10", 
-                                 style = "table1",
-                                 autonum = run_num_t)) %>%
-  body_add_flextable(value = tran_kable1(IG$bottom[1], 7.5)) %>%
-  
-  body_add_caption(block_caption("Top 10 MTD", 
-                                 style = "table1",
-                                 autonum = run_num_t)) %>%
-  body_add_flextable(value = tran_kable1(IG$top_MTD[1], 7.5)) %>%
-  
-  body_add_caption(block_caption("Bottom 10 MTD", 
-                                 style = "table1",
-                                 autonum = run_num_t)) %>%
-  body_add_flextable(value = tran_kable1(IG$bottom_MTD[1], 7.5)) %>%
-  
-  body_add_caption(block_caption("Top 10 YTD", 
-                                 style = "table1",
-                                 autonum = run_num_t)) %>%
-  body_add_flextable(value = tran_kable1(IG$top_YTD[1], 7.5)) %>%
-  
-  body_add_caption(block_caption("Bottom 10 YTD", 
-                                 style = "table1",
-                                 autonum = run_num_t)) %>%
-  body_add_flextable(value = tran_kable1(IG$bottom_YTD[1], 7.5)) %>%
+  add_table1(index_sum_table_rating21, cat="IG Corporate", group="rating2", table_width, 
+             caption_title = "分评级估值", "table1", table_num = run_num_t) %>%
+  add_table1(index_sum_table_Label1, cat="IG Corporate", group="Label", table_width, 
+             caption_title = "分类别估值", "table1", table_num = run_num_t) %>%
   
   
-  body_add_par("3)Duration Matrix", style = "heading 3") %>%
-  body_add_caption(block_caption("Duration Matrix for spread_chg By Label", 
-                                 style = "table1",
-                                 autonum = run_num_t)) %>%
-  body_add_flextable(value = tran_kable2(IG$summary3[1], 7.5)) %>%
-  
-  body_add_caption(block_caption("Duration Matrix for spread By Label", 
-                                 style = "table1",
-                                 autonum = run_num_t)) %>%
-  body_add_flextable(value = tran_kable2(IG$summary5[1], 7.5)) %>%
-  
-  body_add_caption(block_caption("Duration Matrix for spread_chg By rating2", 
-                                 style = "table1",
-                                 autonum = run_num_t)) %>%
-  body_add_flextable(value = tran_kable2(IG$summary7[1], 7.5)) %>%
-  
-  body_add_caption(block_caption("Duration Matrix for spread By rating2", 
-                                 style = "table1",
-                                 autonum = run_num_t)) %>%
-  body_add_flextable(value = tran_kable2(IG$summary9[1], 7.5)) %>%
+  body_add_par("2) 分组数据概览", style = "heading 3") %>%
+  add_table(IG$summary1[1], "", "", table_width, "按类别分组",
+            table_style = "table1", table_num = run_num_t, type=1) %>%
+  add_table(IG$summary2[1], "", "", table_width, "按综合评级分组",
+            table_style = "table1", table_num = run_num_t, type=1) %>%
+  add_table(IG$top[1], IG$top_MTD[1], IG$top_YTD[1],
+            table_width, "涨幅前十", "table1", run_num_t, 2) %>%
+  add_table(IG$bottom[1], IG$bottom_MTD[1], IG$bottom_YTD[1],
+            table_width, "跌幅前十", "table1", run_num_t, 2)
+
+
+
+## 2.4 Financials -----------------------------------------------------------
+weekly_report <- weekly_report %>%
+  body_add_par("4. Financials", style = "heading 2") %>%
+  body_add_par("1) 指数与估值", style = "heading 3") %>%
   
   
-  
-  body_add_par("4.Financials", style = "heading 2") %>%
-  body_add_par("1)Index Review", style = "heading 3") %>%
-  body_add_caption(block_caption("Return & Valuation", 
+  body_add_caption(block_caption("收益与估值", 
                                  style = "chart1",
                                  autonum = run_num)) %>%
-  body_add_gg(value = ggarrange(Financials$return, Financials$spread, 
-                                ncol = 2, nrow = 1), style = "left",
-              width = 7.5, height = 3) %>%
+  add_graph(Financials$return, Financials$spread, img_width1, 3, "centered") %>%
+  add_graph(Financials$yield, Financials$DTS, img_width1, 3, "centered") %>%
   
-  body_add_gg(value = ggarrange(Financials$yield, Financials$DTS, 
-                                ncol = 2, nrow = 1), style = "left",
-              width = 7.5, height = 3) %>%
-  
-  
-  body_add_par("2)Financials Summary", style = "heading 3") %>%
-  body_add_caption(block_caption("Summary By rating2", 
-                                 style = "table1",
-                                 autonum = run_num_t)) %>%
-  body_add_flextable(value = tran_kable1(Financials$summary1[1], 7.5)) %>%
-  
-  body_add_caption(block_caption("Summary By Label", 
-                                 style = "table1",
-                                 autonum = run_num_t)) %>%
-  body_add_flextable(value = tran_kable1(Financials$summary2[1], 7.5)) %>%
-  
-  body_add_caption(block_caption("Top 10", 
-                                 style = "table1",
-                                 autonum = run_num_t)) %>%
-  body_add_flextable(value = tran_kable1(Financials$top[1], 7.5)) %>%
-  
-  body_add_caption(block_caption("Bottom 10", 
-                                 style = "table1",
-                                 autonum = run_num_t)) %>%
-  body_add_flextable(value = tran_kable1(Financials$bottom[1], 7.5)) %>%
-  
-  body_add_caption(block_caption("Top 10 MTD", 
-                                 style = "table1",
-                                 autonum = run_num_t)) %>%
-  body_add_flextable(value = tran_kable1(Financials$top_MTD[1], 7.5)) %>%
-  
-  body_add_caption(block_caption("Bottom 10 MTD", 
-                                 style = "table1",
-                                 autonum = run_num_t)) %>%
-  body_add_flextable(value = tran_kable1(Financials$bottom_MTD[1], 7.5)) %>%
-  
-  body_add_caption(block_caption("Top 10 YTD", 
-                                 style = "table1",
-                                 autonum = run_num_t)) %>%
-  body_add_flextable(value = tran_kable1(Financials$top_YTD[1], 7.5)) %>%
-  
-  body_add_caption(block_caption("Bottom 10 YTD", 
-                                 style = "table1",
-                                 autonum = run_num_t)) %>%
-  body_add_flextable(value = tran_kable1(Financials$bottom_YTD[1], 7.5)) %>%
+  add_table1(index_sum_table_rating21, cat="IG Corporate", group="rating2", table_width, 
+             caption_title = "分评级估值", "table1", table_num = run_num_t) %>%
+  add_table1(index_sum_table_Label1, cat="IG Corporate", group="Label", table_width, 
+             caption_title = "分类别估值", "table1", table_num = run_num_t) %>%
   
   
-  body_add_par("3)Duration Matrix", style = "heading 3") %>%
-  body_add_caption(block_caption("Duration Matrix for spread_chg By Label", 
-                                 style = "table1",
-                                 autonum = run_num_t)) %>%
-  body_add_flextable(value = tran_kable2(Financials$summary3[1], 7.5)) %>%
-  
-  body_add_caption(block_caption("Duration Matrix for spread By Label", 
-                                 style = "table1",
-                                 autonum = run_num_t)) %>%
-  body_add_flextable(value = tran_kable2(Financials$summary5[1], 7.5)) %>%
-  
-  body_add_caption(block_caption("Duration Matrix for spread_chg By rating2", 
-                                 style = "table1",
-                                 autonum = run_num_t)) %>%
-  body_add_flextable(value = tran_kable2(Financials$summary7[1], 7.5)) %>%
-  
-  body_add_caption(block_caption("Duration Matrix for spread By rating2", 
-                                 style = "table1",
-                                 autonum = run_num_t)) %>%
-  body_add_flextable(value = tran_kable2(Financials$summary9[1], 7.5)) %>%
-  
-  
-  
-  body_add_par("5.LGFV", style = "heading 2") %>%
-  body_add_par("1)Index Review", style = "heading 3") %>%
-  body_add_caption(block_caption("Return & Valuation", 
+  body_add_par("2) 分组数据概览", style = "heading 3") %>%
+  add_table(Financials$summary1[1], "", "", table_width, "按类别分组",
+            table_style = "table1", table_num = run_num_t, type=1) %>%
+  add_table(Financials$summary2[1], "", "", table_width, "按综合评级分组",
+            table_style = "table1", table_num = run_num_t, type=1) %>%
+  add_table(Financials$top[1], Financials$top_MTD[1], Financials$top_YTD[1],
+            table_width, "涨幅前十", "table1", run_num_t, 2) %>%
+  add_table(Financials$bottom[1], Financials$bottom_MTD[1], Financials$bottom_YTD[1],
+            table_width, "跌幅前十", "table1", run_num_t, 2)
+
+## 2.5 LGFV -----------------------------------------------------------------
+
+weekly_report <- weekly_report %>%
+  body_add_par("5. LGFV", style = "heading 2") %>%
+  body_add_par("1) 指数与估值", style = "heading 3") %>%
+  body_add_caption(block_caption("收益与估值", 
                                  style = "chart1",
                                  autonum = run_num)) %>%
-  body_add_gg(value = ggarrange(IG$return, IG$spread, 
-                                ncol = 2, nrow = 1), style = "left",
-              width = 7.5, height = 3) %>%
+  add_graph(LGFV$return, LGFV$spread, img_width1, 3, "centered") %>%
+  add_graph(LGFV$yield, LGFV$DTS, img_width1, 3, "centered") %>%
   
-  body_add_gg(value = ggarrange(IG$yield, IG$DTS, 
-                                ncol = 2, nrow = 1), style = "left",
-              width = 7.5, height = 3) %>%
+  add_table1(index_sum_table_rating21, cat="LGFV", group="rating2", table_width, 
+             caption_title = "分评级估值", "table1", table_num = run_num_t) %>%
+  add_table1(index_sum_table_Label1, cat="LGFV", group="Label", table_width, 
+             caption_title = "分类别估值", "table1", table_num = run_num_t) %>%
   
-  
-  body_add_par("2)LGFV Summary", style = "heading 3") %>%
-  body_add_caption(block_caption("Summary By rating2", 
-                                 style = "table1",
-                                 autonum = run_num_t)) %>%
-  body_add_flextable(value = tran_kable1(LGFV$summary1[1], 7.5)) %>%
-  
-  body_add_caption(block_caption("Summary of price_chg By rating2", 
-                                 style = "table1",
-                                 autonum = run_num_t)) %>%
-  body_add_flextable(value = tran_kable2(LGFV$summary8[1], 7.5)) %>%
-  
-  body_add_caption(block_caption("Summary of YTM By rating2", 
-                                 style = "table1",
-                                 autonum = run_num_t)) %>%
-  body_add_flextable(value = tran_kable2(LGFV$summary10[1], 7.5)) %>%
-  
-  body_add_caption(block_caption("Top 10", 
-                                 style = "table1",
-                                 autonum = run_num_t)) %>%
-  body_add_flextable(value = tran_kable1(LGFV$top[1], 7.5)) %>%
-  
-  body_add_caption(block_caption("Bottom 10", 
-                                 style = "table1",
-                                 autonum = run_num_t)) %>%
-  body_add_flextable(value = tran_kable1(LGFV$bottom[1], 7.5)) %>%
-  
-  body_add_caption(block_caption("Top 10 MTD", 
-                                 style = "table1",
-                                 autonum = run_num_t)) %>%
-  body_add_flextable(value = tran_kable1(LGFV$top_MTD[1], 7.5)) %>%
-  
-  body_add_caption(block_caption("Bottom 10 MTD", 
-                                 style = "table1",
-                                 autonum = run_num_t)) %>%
-  body_add_flextable(value = tran_kable1(LGFV$bottom_MTD[1], 7.5)) %>%
-  
-  body_add_caption(block_caption("Top 10 YTD", 
-                                 style = "table1",
-                                 autonum = run_num_t)) %>%
-  body_add_flextable(value = tran_kable1(LGFV$top_YTD[1], 7.5)) %>%
-  
-  body_add_caption(block_caption("Bottom 10 YTD", 
-                                 style = "table1",
-                                 autonum = run_num_t)) %>%
-  body_add_flextable(value = tran_kable1(LGFV$bottom_YTD[1], 7.5))%>%
-  
-  
-  
-  body_add_par("6.Industry", style = "heading 2") %>%
-  body_add_par("1)Index Review", style = "heading 3") %>%
-  body_add_caption(block_caption("Return & Valuation", 
+  body_add_par("2) 分组数据概览", style = "heading 3") %>%
+  add_table(LGFV$summary1[1], "", "", table_width, "按类别分组",
+            table_style = "table1", table_num = run_num_t, type=1) %>%
+  add_table(LGFV$top[1], LGFV$top_MTD[1], LGFV$top_YTD[1],
+            table_width, "涨幅前十", "table1", run_num_t, 2) %>%
+  add_table(LGFV$bottom[1], LGFV$bottom_MTD[1], LGFV$bottom_YTD[1],
+            table_width, "跌幅前十", "table1", run_num_t, 2)
+
+
+# 2.6 Industry ------------------------------------------------------------
+weekly_report <- weekly_report %>%
+  body_add_par("6. Industry", style = "heading 2") %>%
+  body_add_par("1) 指数与估值", style = "heading 3") %>%
+  body_add_caption(block_caption("收益与估值", 
                                  style = "chart1",
                                  autonum = run_num)) %>%
-  body_add_gg(value = ggarrange(IG$return, IG$spread, 
-                                ncol = 2, nrow = 1), style = "left",
-              width = 7.5, height = 3) %>%
+  add_graph(Industry$return, Industry$spread, img_width1, 3, "centered") %>%
+  add_graph(Industry$yield, Industry$DTS, img_width1, 3, "centered") %>%
   
-  body_add_gg(value = ggarrange(IG$yield, IG$DTS, 
-                                ncol = 2, nrow = 1), style = "left",
-              width = 7.5, height = 3) %>%
+  add_table1(index_sum_table_rating21, cat="Industry", group="rating2", table_width, 
+             caption_title = "分评级估值", "table1", table_num = run_num_t) %>%
+  add_table1(index_sum_table_Label1, cat="Industry", group="Label", table_width, 
+             caption_title = "分类别估值", "table1", table_num = run_num_t) %>%
   
-  
-  body_add_par("2)Industry Summary", style = "heading 3") %>%
-  body_add_caption(block_caption("Summary By rating2", 
-                                 style = "table1",
-                                 autonum = run_num_t)) %>%
-  body_add_flextable(value = tran_kable1(Industry$summary1[1], 7.5)) %>%
-  
-  body_add_caption(block_caption("Summary of price_chg By rating2", 
-                                 style = "table1",
-                                 autonum = run_num_t)) %>%
-  body_add_flextable(value = tran_kable2(Industry$summary8[1], 7.5)) %>%
-  
-  body_add_caption(block_caption("Summary of YTM By rating2", 
-                                 style = "table1",
-                                 autonum = run_num_t)) %>%
-  body_add_flextable(value = tran_kable2(Industry$summary10[1], 7.5)) %>%
-  
-  body_add_caption(block_caption("Top 10", 
-                                 style = "table1",
-                                 autonum = run_num_t)) %>%
-  body_add_flextable(value = tran_kable1(Industry$top[1], 7.5)) %>%
-  
-  body_add_caption(block_caption("Bottom 10", 
-                                 style = "table1",
-                                 autonum = run_num_t)) %>%
-  body_add_flextable(value = tran_kable1(Industry$bottom[1], 7.5)) %>%
-  
-  body_add_caption(block_caption("Top 10 MTD", 
-                                 style = "table1",
-                                 autonum = run_num_t)) %>%
-  body_add_flextable(value = tran_kable1(Industry$top_MTD[1], 7.5)) %>%
-  
-  body_add_caption(block_caption("Bottom 10 MTD", 
-                                 style = "table1",
-                                 autonum = run_num_t)) %>%
-  body_add_flextable(value = tran_kable1(Industry$bottom_MTD[1], 7.5)) %>%
-  
-  body_add_caption(block_caption("Top 10 YTD", 
-                                 style = "table1",
-                                 autonum = run_num_t)) %>%
-  body_add_flextable(value = tran_kable1(Industry$top_YTD[1], 7.5)) %>%
-  
-  body_add_caption(block_caption("Bottom 10 YTD", 
-                                 style = "table1",
-                                 autonum = run_num_t)) %>%
-  body_add_flextable(value = tran_kable1(Industry$bottom_YTD[1], 7.5)) %>%
-  
-  
-  body_add_par("7.Bank Capital", style = "heading 2") %>%
-  body_add_par("1)Index Review", style = "heading 3") %>%
-  body_add_caption(block_caption("Return & Valuation", 
+  body_add_par("2) 分组数据概览", style = "heading 3") %>%
+  add_table(Industry$summary1[1], "", "", table_width, "按类别分组",
+            table_style = "table1", table_num = run_num_t, type=1) %>%
+  add_table(Industry$top[1], Industry$top_MTD[1], Industry$top_YTD[1],
+            table_width, "涨幅前十", "table1", run_num_t, 2) %>%
+  add_table(Industry$bottom[1], Industry$bottom_MTD[1], Industry$bottom_YTD[1],
+            table_width, "跌幅前十", "table1", run_num_t, 2)
+
+
+## 2.7 Bank Capital --------------------------------------------------------
+weekly_report <- weekly_report %>%
+  body_add_par("7. Bank Capital", style = "heading 2") %>%
+  body_add_par("1) 指数与估值", style = "heading 3") %>%
+  body_add_caption(block_caption("收益与估值", 
                                  style = "chart1",
                                  autonum = run_num)) %>%
-  body_add_gg(value = ggarrange(AT1$return, Tier2$return, 
-                                ncol = 2, nrow = 1), style = "left",
-              width = 7.5, height = 3) %>%
-  body_add_gg(value = ggarrange(AT1$spread, Tier2$spread, 
-                                ncol = 2, nrow = 1), style = "left",
-              width = 7.5, height = 3) %>%
-  body_add_gg(value = ggarrange(AT1$yield, Tier2$yield, 
-                                ncol = 2, nrow = 1), style = "left",
-              width = 7.5, height = 3) %>%
-  body_add_gg(value = plot4, style = "left", width = 3.75, height = 3) %>%
+  add_graph(AT1$return, Tier2$return, img_width1, 3, "centered") %>%
+  add_graph(AT1$spread, Tier2$spread, img_width1, 3, "centered") %>%
+  add_graph(AT1$yield, Tier2$yield, img_width1, 3, "centered") %>%
+  body_add_gg(value = plot4, style = "left", width = img_width1/2, height = 3) %>%
+  add_table1(index_sum_table_rating21, cat="AT1", group="rating2", table_width, 
+             caption_title = "AT1分评级估值", "table1", table_num = run_num_t) %>%
+  add_table1(index_sum_table_Label1, cat="AT1", group="Label", table_width, 
+             caption_title = "AT1分类别估值", "table1", table_num = run_num_t) %>%
+  # add_table1(index_sum_table_rating21, cat="Tier2", group="rating2", table_width, 
+  #            caption_title = "Tier 2分评级估值", "table1", table_num = run_num_t) %>%
+  # add_table1(index_sum_table_Label1, cat="Tier2", group="Label", table_width, 
+  #            caption_title = "Tier 2分类别估值", "table1", table_num = run_num_t) %>%
+
+
+  body_add_par("2) AT1分组数据概览", style = "heading 3") %>%
+  add_table(AT1$summary1[1], "", "", table_width, "按类别分组",
+            table_style = "table1", table_num = run_num_t, type=1) %>%
+  add_table(AT1$top[1], AT1$top_MTD[1], AT1$top_YTD[1],
+            table_width, "涨幅前十", "table1", run_num_t, 2) %>%
+  add_table(AT1$bottom[1], AT1$bottom_MTD[1], AT1$bottom_YTD[1],
+            table_width, "跌幅前十", "table1", run_num_t, 2) %>%
   
-  
-  body_add_par("2)AT1 Summary", style = "heading 3") %>%
-  body_add_caption(block_caption("Summary By rating2", 
-                                 style = "table1",
-                                 autonum = run_num_t)) %>%
-  body_add_flextable(value = tran_kable1(AT1$summary1[1], 7.5)) %>%
-  
-  body_add_caption(block_caption("Summary of price_chg By rating2", 
-                                 style = "table1",
-                                 autonum = run_num_t)) %>%
-  body_add_flextable(value = tran_kable2(AT1$summary8[1], 7.5)) %>%
-  
-  body_add_caption(block_caption("Summary of YTM By rating2", 
-                                 style = "table1",
-                                 autonum = run_num_t)) %>%
-  body_add_flextable(value = tran_kable2(AT1$summary10[1], 7.5)) %>%
-  
-  body_add_caption(block_caption("Top 10", 
-                                 style = "table1",
-                                 autonum = run_num_t)) %>%
-  body_add_flextable(value = tran_kable1(AT1$top[1], 7.5)) %>%
-  
-  body_add_caption(block_caption("Bottom 10", 
-                                 style = "table1",
-                                 autonum = run_num_t)) %>%
-  body_add_flextable(value = tran_kable1(AT1$bottom[1], 7.5)) %>%
-  
-  body_add_caption(block_caption("Top 10 MTD", 
-                                 style = "table1",
-                                 autonum = run_num_t)) %>%
-  body_add_flextable(value = tran_kable1(AT1$top_MTD[1], 7.5)) %>%
-  
-  body_add_caption(block_caption("Bottom 10 MTD", 
-                                 style = "table1",
-                                 autonum = run_num_t)) %>%
-  body_add_flextable(value = tran_kable1(AT1$bottom_MTD[1], 7.5)) %>%
-  
-  body_add_caption(block_caption("Top 10 YTD", 
-                                 style = "table1",
-                                 autonum = run_num_t)) %>%
-  body_add_flextable(value = tran_kable1(AT1$top_YTD[1], 7.5)) %>%
-  
-  body_add_caption(block_caption("Bottom 10 YTD", 
-                                 style = "table1",
-                                 autonum = run_num_t)) %>%
-  body_add_flextable(value = tran_kable1(AT1$bottom_YTD[1], 7.5)) %>%
-  
-  
-  body_add_par("3)Tier2 Summary", style = "heading 3") %>%
-  body_add_caption(block_caption("Summary By rating2", 
-                                 style = "table1",
-                                 autonum = run_num_t)) %>%
-  body_add_flextable(value = tran_kable1(Tier2$summary1[1], 7.5)) %>%
-  
-  body_add_caption(block_caption("Summary of price_chg By rating2", 
-                                 style = "table1",
-                                 autonum = run_num_t)) %>%
-  body_add_flextable(value = tran_kable2(Tier2$summary8[1], 7.5)) %>%
-  
-  body_add_caption(block_caption("Summary of YTM By rating2", 
-                                 style = "table1",
-                                 autonum = run_num_t)) %>%
-  body_add_flextable(value = tran_kable2(Tier2$summary10[1], 7.5)) %>%
-  
-  body_add_caption(block_caption("Top 10", 
-                                 style = "table1",
-                                 autonum = run_num_t)) %>%
-  body_add_flextable(value = tran_kable1(Tier2$top[1], 7.5)) %>%
-  
-  body_add_caption(block_caption("Bottom 10", 
-                                 style = "table1",
-                                 autonum = run_num_t)) %>%
-  body_add_flextable(value = tran_kable1(Tier2$bottom[1], 7.5)) %>%
-  
-  body_add_caption(block_caption("Top 10 MTD", 
-                                 style = "table1",
-                                 autonum = run_num_t)) %>%
-  body_add_flextable(value = tran_kable1(Tier2$top_MTD[1], 7.5)) %>%
-  
-  body_add_caption(block_caption("Bottom 10 MTD", 
-                                 style = "table1",
-                                 autonum = run_num_t)) %>%
-  body_add_flextable(value = tran_kable1(Tier2$bottom_MTD[1], 7.5)) %>%
-  
-  body_add_caption(block_caption("Top 10 YTD", 
-                                 style = "table1",
-                                 autonum = run_num_t)) %>%
-  body_add_flextable(value = tran_kable1(Tier2$top_YTD[1], 7.5)) %>%
-  
-  body_add_caption(block_caption("Bottom 10 YTD", 
-                                 style = "table1",
-                                 autonum = run_num_t)) %>%
-  body_add_flextable(value = tran_kable1(Tier2$bottom_YTD[1], 7.5)) %>%
-  
-  
+  body_add_par("3) Tier2分组数据概览", style = "heading 3") %>%
+  add_table(Tier2$summary1[1], "", "", table_width, "按类别分组",
+            table_style = "table1", table_num = run_num_t, type=1) %>%
+  add_table(Tier2$top[1], Tier2$top_MTD[1], Tier2$top_YTD[1],
+            table_width, "涨幅前十", "table1", run_num_t, 2) %>%
+  add_table(Tier2$bottom[1], Tier2$bottom_MTD[1], Tier2$bottom_YTD[1],
+            table_width, "跌幅前十", "table1", run_num_t, 2)
+
+
+## 2.8 EM -------------------------------------------------------------------
+weekly_report <- weekly_report %>%
   body_add_par("8.EM", style = "heading 2") %>%
-  body_add_par("1)Index Review", style = "heading 3") %>%
-  body_add_caption(block_caption("Return & Valuation", 
+  body_add_par("1) 指数与估值", style = "heading 3") %>%
+  body_add_caption(block_caption("收益与估值", 
                                  style = "chart1",
                                  autonum = run_num)) %>%
-  body_add_gg(value = ggarrange(EM$return, EM$spread, 
-                                ncol = 2, nrow = 1), style = "left",
-              width = 7.5, height = 3) %>%
+  add_graph(EM$return, EM$spread, img_width1, 3, "centered") %>%
+  add_graph(EM$yield, EM$DTS, img_width1, 3, "centered") %>%
+  add_table1(index_sum_table_rating21, cat="EM", group="rating2", table_width, 
+             caption_title = "分评级估值", "table1", table_num = run_num_t) %>%
+  add_table1(index_sum_table_Label1, cat="EM", group="Label", table_width, 
+             caption_title = "分类别估值", "table1", table_num = run_num_t) %>%
   
-  body_add_gg(value = ggarrange(EM$yield, EM$DTS, 
-                                ncol = 2, nrow = 1), style = "left",
-              width = 7.5, height = 3) %>%
+  body_add_par("2) 分组数据概览", style = "heading 3") %>%
+  add_table(EM$summary1[1], "", "", table_width, "按类别分组",
+            table_style = "table1", table_num = run_num_t, type=1) %>%
+  add_table(EM$summary2[1], "", "", table_width, "按综合评级分组",
+            table_style = "table1", table_num = run_num_t, type=1) %>%
+  add_table(EM$top[1], EM$top_MTD[1], EM$top_YTD[1],
+            table_width, "涨幅前十", "table1", run_num_t, 2) %>%
+  add_table(EM$bottom[1], EM$bottom_MTD[1], EM$bottom_YTD[1],
+            table_width, "跌幅前十", "table1", run_num_t, 2)
   
-  
-  body_add_par("2)EM Summary", style = "heading 3") %>%
-  body_add_caption(block_caption("Summary By rating2", 
-                                 style = "table1",
-                                 autonum = run_num_t)) %>%
-  body_add_flextable(value = tran_kable1(EM$summary1[1], 7.5)) %>%
-  
-  body_add_caption(block_caption("Summary By Label", 
-                                 style = "table1",
-                                 autonum = run_num_t)) %>%
-  body_add_flextable(value = tran_kable1(EM$summary2[1], 7.5)) %>%
-  
-  body_add_caption(block_caption("Top 10", 
-                                 style = "table1",
-                                 autonum = run_num_t)) %>%
-  body_add_flextable(value = tran_kable1(EM$top[1], 7.5)) %>%
-  
-  body_add_caption(block_caption("Bottom 10", 
-                                 style = "table1",
-                                 autonum = run_num_t)) %>%
-  body_add_flextable(value = tran_kable1(EM$bottom[1], 7.5)) %>%
-  
-  body_add_caption(block_caption("Top 10 MTD", 
-                                 style = "table1",
-                                 autonum = run_num_t)) %>%
-  body_add_flextable(value = tran_kable1(EM$top_MTD[1], 7.5)) %>%
-  
-  body_add_caption(block_caption("Bottom 10 MTD", 
-                                 style = "table1",
-                                 autonum = run_num_t)) %>%
-  body_add_flextable(value = tran_kable1(EM$bottom_MTD[1], 7.5)) %>%
-  
-  body_add_caption(block_caption("Top 10 YTD", 
-                                 style = "table1",
-                                 autonum = run_num_t)) %>%
-  body_add_flextable(value = tran_kable1(EM$top_YTD[1], 7.5)) %>%
-  
-  body_add_caption(block_caption("Bottom 10 YTD", 
-                                 style = "table1",
-                                 autonum = run_num_t)) %>%
-  body_add_flextable(value = tran_kable1(EM$bottom_YTD[1], 7.5)) %>%
-  
-  
-  body_add_par("3)Duration Matrix", style = "heading 3") %>%
-  body_add_caption(block_caption("Duration Matrix for spread_chg By Label", 
-                                 style = "table1",
-                                 autonum = run_num_t)) %>%
-  body_add_flextable(value = tran_kable2(EM$summary3[1], 7.5)) %>%
-  
-  body_add_caption(block_caption("Duration Matrix for spread By Label", 
-                                 style = "table1",
-                                 autonum = run_num_t)) %>%
-  body_add_flextable(value = tran_kable2(EM$summary5[1], 7.5)) %>%
-  
-  body_add_caption(block_caption("Duration Matrix for spread_chg By rating2", 
-                                 style = "table1",
-                                 autonum = run_num_t)) %>%
-  body_add_flextable(value = tran_kable2(EM$summary7[1], 7.5)) %>%
-  
-  body_add_caption(block_caption("Duration Matrix for spread By rating2", 
-                                 style = "table1",
-                                 autonum = run_num_t)) %>%
-  body_add_flextable(value = tran_kable2(EM$summary9[1], 7.5))
-
-
 
 # 3. 输出 -------------------------------------------------------------------
-print(weekly_report, target = "word_reports/test.docx")
-
-
-
+print(weekly_report, target = "word_reports/market_review.docx")

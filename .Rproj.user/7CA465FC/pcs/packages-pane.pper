@@ -1,0 +1,7 @@
+{
+    "installOptions": {
+        "installFromRepository": true,
+        "libraryPath": "C:/Users/ex-qliu/Documents/R/R-4.0.3/library",
+        "installDependencies": true
+    }
+}
