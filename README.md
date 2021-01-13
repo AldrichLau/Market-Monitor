@@ -9,3 +9,8 @@ The file has been separated into several parts, each part take a kind of functio
 2. "market_monitor.Rmd"是用于生成html版本的market_report。
 
 3. "market_monitor_word.R"用于输出word版本的report，source文件为"market monitor dependency.R" and "word_report_dependency.R"。使用时需要将word_reports文件夹及其中的template放在working directory下。
+
+## Weekly Report
+1. 更新CNUSD.sqlite，根据manipulate_database做transfer
+2. 更新Macro_database.sqlite，根据Macro_database.R操作
+3. 根据word_report_dependency.R和market_monitor_word.R完成word report，注意需要手动定义word_report_dependency.R中的函数，直接sourcing file会出现中文乱码问题
