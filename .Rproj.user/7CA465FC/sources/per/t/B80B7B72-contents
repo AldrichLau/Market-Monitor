@@ -1,0 +1,182 @@
+library(tidyverse)
+library(Rblpapi)
+library(RSQLite)
+library(DBI)
+library(readxl)
+library(quantmod)
+
+blpConnect()
+test <- dbReadTable(db, "Info")
+data <- function() {
+
+  db <- dbConnect(SQLite(), "CNUSD.sqlite")
+
+  ID(db, "HY Property")
+  ID(db, "LGFV")
+  ID(db, "IG Corporate")
+  ID(db, "Financials")
+  ID(db, "Industry")
+  ID(db, "AT1")
+  ID(db, "Tier 2")
+  ID(db, "EM")
+  Info(db)
+  hist_data(db)
+
+}
+
+ID <- function(db, name){
+
+  ID <- as_tibble(bsrch(paste("FI:CNUSD ", name, sep = ""))) %>%
+    mutate(ID = as.character(id)) %>% select(ID) %>%
+    mutate(cat = name)
+
+  ID <- rbind(ID, dbGetQuery(db, 'SELECT * FROM ID')) %>%
+    filter(duplicated(ID) == FALSE)
+
+  dbWriteTable(db, "ID", ID, overwrite = TRUE)
+
+}
+
+Info <- function(db){
+
+  ID <- dbGetQuery(db, 'SELECT * FROM ID')
+  fields <- dbGetQuery(db, 'SELECT * FROM fields')
+
+  cat <- dbReadTable(db, "cat")
+
+  Info <- bdp(ID$ID, fields$flds) %>%
+    mutate(ID = ID$ID) %>%
+    left_join(ID) %>%
+    left_join(cat) %>%
+    mutate(cat1 = na.fill(cat1, "other")) %>%
+    mutate_at(c("MATURITY", "DEFAULT_DATE", "CALLED_DT"), as.character) %>%
+    mutate(MATURITY = ifelse(is.na(MATURITY), "2049-12-31", MATURITY),
+           DEFAULT_DATE = ifelse(is.na(DEFAULT_DATE), "2050-1-1", DEFAULT_DATE),
+           CALLED_DT = ifelse(is.na(CALLED_DT), "2050-1-1", CALLED_DT)) %>%
+    mutate_at(c("MATURITY", "DEFAULT_DATE", "CALLED_DT"), as.Date) %>%
+    group_by(TICKER) %>%
+    mutate(DEFAULT_DATE = max(DEFAULT_DATE, na.rm = TRUE)) %>%
+    ungroup() %>%
+    mutate(END_DT = ifelse(DEFAULT_DATE <= MATURITY ,
+                           as.character(DEFAULT_DATE),
+                             ifelse(CALLED_DT <= MATURITY,
+                                    as.character(CALLED_DT),
+                                    as.character(MATURITY)))) %>%
+    mutate_at(c("MATURITY", "ISSUE_DT",
+                "DEFAULT_DATE","CALLED_DT"), as.character)
+
+  credit <- Info %>% select(TICKER, RTG_MOODY, RTG_FITCH, RTG_SP)
+  credit <- rating(db, credit)
+
+  Info <- Info %>% left_join(credit)
+
+  dbWriteTable(db, "Info", Info, overwrite = TRUE)
+
+}
+
+hist_data <- function(db) {
+
+  ID <- dbGetQuery(db, 'SELECT ID, SECURITY_SHORT_DES,
+                 SECURITY_PRICING_DATE, END_DT, AMT_OUTSTANDING FROM Info') %>%
+    mutate(ticker = paste(ID, "@BVAL", sep = ""),
+           issue_date = as.Date(SECURITY_PRICING_DATE, origin = "1970-01-01"),
+           maturity = as.Date(END_DT),
+           amount = AMT_OUTSTANDING) %>%
+    select(ID, ticker, issue_date, maturity, amount,
+           name = SECURITY_SHORT_DES)
+
+  key <- c("PX_MID", "YLD_YTM_MID", "YLD_CNV_MID",
+           "INDEX_MODIFIED_DURATION", "BLP_SPRD_TO_BENCH_MID")
+
+
+  if(dbExistsTable(db, "hist_data")) {
+
+    date01 <- (dbReadTable(db, "hist_data") %>%
+                 filter(duplicated(date) == FALSE) %>%
+                 mutate(date = as.Date(date)) %>%
+                 arrange(desc(date)))$date[1] +  1
+  } else {
+
+    date01 <- as.Date("2014/12/1")
+  }
+
+  date02 <- Sys.Date() - 1
+
+  if(date01 > date02) {return()}
+
+  ID <- ID %>%
+    filter(maturity >= date01,
+           issue_date <= date02)
+
+  data <- getdata(ID$ticker, key, date01, date02) %>%
+    mutate(ticker = ID) %>%
+    select(-ID) %>%
+    left_join(ID) %>%
+    filter(date > issue_date) %>%
+    filter(date <= maturity) %>%
+    mutate(date = as.character(date)) %>%
+    select(date, ID, name,
+           price = PX_MID,
+           YTM = YLD_YTM_MID,
+           YTW = YLD_CNV_MID,
+           spread = BLP_SPRD_TO_BENCH_MID,
+           duration = INDEX_MODIFIED_DURATION)
+
+
+
+  ifelse(dbExistsTable(db, "hist_data"),
+         dbWriteTable(db, "hist_data", data, append = TRUE),
+         dbWriteTable(db, "hist_data", data, overwrite = TRUE))
+
+}
+
+getdata <- function(ticker, key , date01, date02) {
+
+  opt <- structure(c("PREVIOUS_VALUE",
+                     "ALL_CALENDAR_DAYS"),
+                   names = c("nonTradingDayFillMethod",
+                             "nonTradingDayFillOption"))
+
+  data0 <- bdh(ticker, key, as.Date(date01),
+               as.Date(date02), options = opt)
+
+  data1 <- mapply(function(x, y) {y <- y %>% mutate(ID = x) },
+                  names(data0), data0,
+                  USE.NAMES = FALSE, SIMPLIFY = FALSE)
+
+  data2 <- as_tibble(do.call("bind_rows", data1))
+
+  return(data2)
+}
+
+clean <- function(RTG) {
+
+  RTG = gsub("(\\*\\+|\\*|\\*-|\\(|\\)|u|-u|NR|P| |e|WR|WD)", "", RTG)
+
+}
+
+rating <- function(db, data) {
+
+  rating <- data %>%
+    mutate(MOODY = clean(RTG_MOODY),
+           SP = clean(RTG_SP),
+           FITCH = clean(RTG_FITCH)) %>%
+    select(TICKER, MOODY, SP, FITCH) %>%
+    gather(`MOODY`, `SP`, `FITCH`,
+           key = "agent", value = "RTG") %>%
+    left_join(dbReadTable(db, "credit_mapping")) %>%
+    group_by(TICKER, agent) %>%
+    summarise(Credit = round(mean(Credit, na.rm = TRUE), digits = 0)) %>%
+    ungroup() %>%
+    group_by(TICKER) %>%
+    summarise(Credit = quantile(Credit, 0.5, type = 1,
+                                na.rm = TRUE, name = FALSE)) %>%
+    mutate(Credit = ifelse(is.na(Credit), 0 , Credit)) %>%
+    ungroup() %>%
+    left_join(dbReadTable(db, "mapping_credit"))
+
+  return(rating)
+
+}
+
+

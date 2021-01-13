@@ -1,0 +1,24 @@
+{
+    "id": "4EA6FCD8",
+    "path": "//nas-hk/Investment team/Fixed Income/Weekly/LQ/test_macro_database.R",
+    "project_path": null,
+    "type": "r_source",
+    "hash": "1807778608",
+    "contents": "",
+    "dirty": false,
+    "created": 1610441649883.0,
+    "source_on_save": false,
+    "relative_order": 4,
+    "properties": {
+        "cursorPosition": "106,0",
+        "scrollLine": "83"
+    },
+    "folds": "",
+    "lastKnownWriteTime": 1610441258,
+    "encoding": "GB2312",
+    "collab_server": "",
+    "source_window": "",
+    "last_content_update": 1610441258,
+    "read_only": false,
+    "read_only_alternatives": []
+}

@@ -3,7 +3,7 @@
     "path": "~/GitHub/Market-Monitor/market_monitor_word.R",
     "project_path": "market_monitor_word.R",
     "type": "r_source",
-    "hash": "1436962891",
+    "hash": "1260115446",
     "contents": "",
     "dirty": false,
     "created": 1609987263734.0,
@@ -11,17 +11,17 @@
     "relative_order": 3,
     "properties": {
         "tempName": "Untitled1",
-        "cursorPosition": "140,2",
-        "scrollLine": "128",
+        "cursorPosition": "149,20",
+        "scrollLine": "154",
         "docOutlineVisible": "1",
-        "docOutlineSize": "74"
+        "docOutlineSize": "66"
     },
     "folds": "",
-    "lastKnownWriteTime": 1610103236,
+    "lastKnownWriteTime": 1610421943,
     "encoding": "GB2312",
     "collab_server": "",
     "source_window": "",
-    "last_content_update": 1610103236852,
+    "last_content_update": 1610421943499,
     "read_only": false,
     "read_only_alternatives": []
 }

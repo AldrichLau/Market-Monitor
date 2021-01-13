@@ -1,0 +1,106 @@
+library(tidyquant)
+library(tidyverse)
+library(Rblpapi)
+library(xgboost)
+library(RQuantLib)
+library(Matrix)
+library(writexl)
+library(RSQLite)
+library(WindR)
+
+
+
+# Setup -------------------------------------------------------------------
+blpConnect()
+w.start()
+end_date <- today()
+end_date <- as.Date("2021-01-05")
+start_date_WTD <- end_date - days(7)
+start_date_MTD <- floor_date(end_date, "month") - 1
+start_date_YTD <- floor_date(end_date, "year") - 1
+
+
+con <- dbConnect(SQLite(), "Macro_database.sqlite")
+
+blp_flds <- c("PX_LAST", "FUND_FLOW", "YIELD_TO_WORST", "OAS_SOVEREIGN_CURVE", 
+              "Modified_Duration") 
+
+wind_flds <- c("close", "ytm_b", "duration")
+
+
+# 1. 定义函数 ---------------------------------------------------------------
+
+getdata <- function(ticker, key , date01, date02) {
+  
+  opt <- structure(c("PREVIOUS_VALUE", 
+                     "ALL_CALENDAR_DAYS"),
+                   names = c("nonTradingDayFillMethod", 
+                             "nonTradingDayFillOption"))
+  
+  data0 <- bdh(ticker, key, as.Date(date01), 
+               as.Date(date02), options = opt)
+  
+  data1 <- mapply(function(x, y) {y <- y %>% mutate(ID = x) },
+                  names(data0), data0, 
+                  USE.NAMES = FALSE, SIMPLIFY = FALSE)
+  
+  data2 <- as_tibble(do.call("bind_rows", data1))
+  
+  return(data2)
+}
+
+get_data_wind <- function(tickers, fields, date_start, date_end) {
+  l = c()
+  for (ticker in tickers) {
+    df <- w.wsd(ticker, fields, date_start, end_date, 
+                "returnType=1;Days=Alldays;Fill=Previous")[[2]] %>%
+      mutate(ID = ticker)
+    l[[ticker]] = df
+  }
+  result <- bind_rows(l)
+  return(result)
+}
+
+
+# 2. 更新数据 -----------------------------------------------------------------
+
+# 更新index数据
+field_b = "PX_LAST"
+field_w = "close"
+start_date = start_date_YTD
+end_date
+# 更新index_price
+update_macro1 <- function(con, field_b, field_w, start_date, end_date) {
+  
+  Region <- dbReadTable(con, "Region") %>%
+    select(ID, Region)
+  tickers <- dbGetQuery(con, "SELECT ID FROM Region WHERE Source = 'Bloomberg'")[['ID']]
+  tickers_wind <- dbGetQuery(con, "SELECT ID FROM Region WHERE Source = 'Wind'")[['ID']]
+  
+  if (!dbExistsTable(con, "index_price")) {
+    data_w <- get_data_wind(tickers_wind, field_w, start_date, end_date) %>%
+      mutate(date = DATETIME, PX_LAST = CLOSE) %>%
+      select(date, PX_LAST, ID) %>%
+      left_join(Region, by = "ID")
+    
+    data <- getdata(tickers, field_b, start_date, end_date) %>%
+      left_join(Region, by = "ID") %>%
+      mutate(date = as.Date(date))
+    result <- bind_rows(data, data_w) %>% mutate(date = as.character(date))
+    dbWriteTable(con, "index_price", result)
+  } else {
+    start_date <- dbGetQuery(con, "SELECT MAX(date) FROM index_price")[['MAX(date)']]
+    
+    data_w <- get_data_wind(tickers_wind, field_w, start_date, end_date) %>%
+      mutate(date = DATETIME, PX_LAST = CLOSE) %>%
+      select(date, PX_LAST, ID) %>%
+      left_join(Region, by = "ID")
+    
+    data <- getdata(tickers, field_b, start_date, end_date) %>%
+      left_join(Region, by = "ID") %>%
+      mutate(date = as.Date(date))
+    
+    result <- bind_rows(data, data_w) %>% mutate(date = as.character(date))
+    dbWriteTable(con, "index_price", result, append = TRUE)
+  }
+}

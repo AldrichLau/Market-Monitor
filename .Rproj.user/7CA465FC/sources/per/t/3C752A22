@@ -1,0 +1,26 @@
+{
+    "id": "3C752A22",
+    "path": "~/GitHub/Market-Monitor/word_report_dependency.R",
+    "project_path": "word_report_dependency.R",
+    "type": "r_source",
+    "hash": "3807203165",
+    "contents": "",
+    "dirty": false,
+    "created": 1610359186363.0,
+    "source_on_save": false,
+    "relative_order": 3,
+    "properties": {
+        "cursorPosition": "283,0",
+        "scrollLine": "281",
+        "docOutlineVisible": "1",
+        "source_window_id": ""
+    },
+    "folds": "",
+    "lastKnownWriteTime": 1610421803,
+    "encoding": "GB2312",
+    "collab_server": "",
+    "source_window": "",
+    "last_content_update": 1610421803393,
+    "read_only": false,
+    "read_only_alternatives": []
+}

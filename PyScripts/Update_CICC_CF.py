@@ -2,7 +2,7 @@
 """
 Spyder Editor
 Aldrich
-To extract data from CICC Excel document
+To update data from CICC Excel document
 """
 
 import pandas as pd
@@ -38,8 +38,10 @@ df.index = [i.strftime("%Y-%m-%d") for i in df.index]
 df['UNIT'] = "MM USD"
 
 con = sqlite3.connect(database)
+start_date = pd.read_sql_query("SELECT Max(date) FROM Country_Flow", con)['Max(date)'].values[0]
+df = df.loc[df.index>start_date, ]
 df.to_sql(name = "Country_Flow", con = con, index_label = "date", 
-          if_exists = "replace")
+          if_exists = "append")
 
 
 ## 操作表CF主要国家对比
@@ -56,8 +58,11 @@ cols = ['bond_net_inflow_CHINA', 'bond_net_inflow_US',
 df1.columns = (cols + [i + "_4WMA" for i in cols])
 df1['UNIT'] = "MM USD"
 df1.sort_index(inplace=True)
+start_date = pd.read_sql_query("SELECT Max(date) FROM Net_CF_By_Country", con)['Max(date)'].values[0]
+df1 = df1.loc[df1.index>start_date, ]
+
 df1.to_sql(name = "Net_CF_By_Country", con = con, index_label = "date", 
-          if_exists = "replace")
+          if_exists = "append")
 
 con.close()
 

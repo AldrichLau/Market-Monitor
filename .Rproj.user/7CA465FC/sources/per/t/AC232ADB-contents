@@ -45,14 +45,14 @@ tran_kable1 <- function(html_table, page_width=7.5, mode = 1) {
       color(~ spread_MTD > 0, color = "#008000", ~ spread_MTD) %>%
       color(~ spread_YTD > 0, color = "#008000", ~ spread_YTD) %>%
       
-      set_header_labels(Category = "·Ö×é", rating2 = "·Ö×é", 
-                        YTM = "µ½ÆÚÊÕÒæÂÊ", spread = "ÐÅÓÃÀû²î", duration = "¾ÃÆÚ",
-                        price_chg = "¼Û¸ñÕÇµø·ù", price_MTD = "¼Û¸ñÕÇµø·ù",
-                        price_YTD = "¼Û¸ñÕÇµø·ù", spread_chg = "ÐÅÓÃÀû²î±ä¶¯",
-                        spread_MTD = "ÐÅÓÃÀû²î±ä¶¯", spread_YTD = "ÐÅÓÃÀû²î±ä¶¯") %>%
+      set_header_labels(Category = "åˆ†ç»„", rating2 = "åˆ†ç»„", 
+                        YTM = "åˆ°æœŸæ”¶ç›ŠçŽ‡", spread = "ä¿¡ç”¨åˆ©å·®", duration = "ä¹…æœŸ",
+                        price_chg = "ä»·æ ¼æ¶¨è·Œå¹…", price_MTD = "ä»·æ ¼æ¶¨è·Œå¹…",
+                        price_YTD = "ä»·æ ¼æ¶¨è·Œå¹…", spread_chg = "ä¿¡ç”¨åˆ©å·®å˜åŠ¨",
+                        spread_MTD = "ä¿¡ç”¨åˆ©å·®å˜åŠ¨", spread_YTD = "ä¿¡ç”¨åˆ©å·®å˜åŠ¨") %>%
       merge_at(i=1, j=5:7, part = "header") %>%
       merge_at(i=1, j=8:10, part = "header") %>%
-      add_header_row(values = c("", "", "", "", "ÖÜ", "ÔÂ", "Äê", "ÖÜ", "ÔÂ", "Äê"),
+      add_header_row(values = c("", "", "", "", "å‘¨", "æœˆ", "å¹´", "å‘¨", "æœˆ", "å¹´"),
                      top = FALSE) %>%
       theme_vanilla() %>%
       align(align="center", part="all")
@@ -67,9 +67,9 @@ tran_kable1 <- function(html_table, page_width=7.5, mode = 1) {
       color(~ spread_chg < 0, color = "red", ~ spread_chg) %>%
       color(~ spread_chg > 0, color = "#008000", ~ spread_chg) %>%
       
-      set_header_labels(Name = "Õ®È¯¼ò³Æ", Rating = "×ÛºÏÆÀ¼¶", 
-                        YTM = "µ½ÆÚÊÕÒæÂÊ", spread = "ÐÅÓÃÀû²î", duration = "¾ÃÆÚ",
-                        price_chg = "¼Û¸ñÕÇµø·ù", spread_chg = "ÐÅÓÃÀû²î±ä¶¯") %>%
+      set_header_labels(Name = "å€ºåˆ¸ç®€ç§°", Rating = "ç»¼åˆè¯„çº§", 
+                        YTM = "åˆ°æœŸæ”¶ç›ŠçŽ‡", spread = "ä¿¡ç”¨åˆ©å·®", duration = "ä¹…æœŸ",
+                        price_chg = "ä»·æ ¼æ¶¨è·Œå¹…", spread_chg = "ä¿¡ç”¨åˆ©å·®å˜åŠ¨") %>%
       theme_vanilla() %>%
       align(align="center", part="all")
   }
@@ -97,7 +97,7 @@ tran_kable2 <- function(html_table, page_width=7.5, mode=1) {
       color(~ X5.10 > 0, color = "#008000", ~X5.10) %>%
       color(~ X10. < 0, color = "red", ~X10.) %>%
       color(~ X10. > 0, color = "#008000", ~X10.) %>%
-      set_header_labels(level1 = "·Ö×é", X0.1 = "0~1", X1.3 = "1~3",
+      set_header_labels(level1 = "åˆ†ç»„", X0.1 = "0~1", X1.3 = "1~3",
                         X3.5 = "3~5", X5.10 = "5~10", X10. = "10+") %>%
       width(width = dim(.)$widths * page_width /(flextable_dim(.)$widths)) %>%
       align(align = "center", part = "all") %>%
@@ -123,7 +123,7 @@ tran_kable2 <- function(html_table, page_width=7.5, mode=1) {
     if ("X5.10" %in% names(ft)) {ftout <- highlight(ftout, i = ~ X5.10 %in% f1$spread, j = "X5.10", color = "#FF7A81")} else{}
     if ("X10."%in% names(ft)) {ftout <- highlight(ftout, i = ~ X10. %in% f1$spread, j = "X10.", color = "#FF7A81")}
     ftout <- ftout %>%
-      set_header_labels(level1 = "·Ö×é", X0.1 = "0~1", X1.3 = "1~3",
+      set_header_labels(level1 = "åˆ†ç»„", X0.1 = "0~1", X1.3 = "1~3",
                         X3.5 = "3~5", X5.10 = "5~10", X10. = "10+") %>%
       width(width = dim(.)$widths * page_width /(flextable_dim(.)$widths)) %>%
       align(align = "center", part = "all") %>%
@@ -214,7 +214,7 @@ tran_kable2 <- function(html_table, page_width=6.5, mode=2) {
 }
 
 
-# ´óÀà×Ê²úÕÇµøÍ¼
+# å¤§ç±»èµ„äº§æ¶¨è·Œå›¾
 # date1, date2, date3
 date_end <- "2021-01-10"
 date_wk <- as.character(ymd(date_end) - 7)   # begin of last week
@@ -341,9 +341,9 @@ result <- bind_rows(l) %>%
   color(~ pct_WTD > 0, color = "#008000", ~ pct_WTD) %>%
   color(~ pct_MTD > 0, color = "#008000", ~ pct_MTD) %>%
   color(~ pct_YTD > 0, color = "#008000", ~ pct_YTD) %>%
-  set_header_labels(ID = "Ö¸ÊýÃû³Æ", PX_LAST = "×îÐÂµãÎ»", Asset = "×Ê²úÀà±ð",
-                    Region = "µØÇø", pct_WTD = "ÕÇµø·ù", pct_MTD = "ÕÇµø·ù", 
-                    pct_YTD = "ÕÇµø·ù") %>%
+  set_header_labels(ID = "æŒ‡æ•°åç§°", PX_LAST = "æœ€æ–°ç‚¹ä½", Asset = "èµ„äº§ç±»åˆ«",
+                    Region = "åœ°åŒº", pct_WTD = "æ¶¨è·Œå¹…", pct_MTD = "æ¶¨è·Œå¹…", 
+                    pct_YTD = "æ¶¨è·Œå¹…") %>%
   merge_at(i=1:6, j=1, part = "body") %>%
   merge_at(i=7:20, j=1, part = "body") %>%
   merge_at(i=21:26, j=1, part = "body") %>%
@@ -438,9 +438,9 @@ result <- bind_rows(l) %>%
   color(~ pct_WTD > 0, color = "#008000", ~ pct_WTD) %>%
   color(~ pct_MTD > 0, color = "#008000", ~ pct_MTD) %>%
   color(~ pct_YTD > 0, color = "#008000", ~ pct_YTD) %>%
-  set_header_labels(ID = "Ö¸ÊýÃû³Æ", PX_LAST = "×îÐÂµãÎ»", Asset = "×Ê²úÀà±ð",
-                    Region = "µØÇø", pct_WTD = "ÕÇµø·ù", pct_MTD = "ÕÇµø·ù", 
-                    pct_YTD = "ÕÇµø·ù") %>%
+  set_header_labels(ID = "æŒ‡æ•°åç§°", PX_LAST = "æœ€æ–°ç‚¹ä½", Asset = "èµ„äº§ç±»åˆ«",
+                    Region = "åœ°åŒº", pct_WTD = "æ¶¨è·Œå¹…", pct_MTD = "æ¶¨è·Œå¹…", 
+                    pct_YTD = "æ¶¨è·Œå¹…") %>%
   merge_at(i=1:6, j=1, part = "body") %>%
   merge_at(i=7:20, j=1, part = "body") %>%
   merge_at(i=21:26, j=1, part = "body") %>%
@@ -470,8 +470,8 @@ country_flow <- dbGetQuery(con3, "SELECT date, EM_bond, EM_ASIA_bond, CHINA_bond
 t1 <- tibble(country = c("EM_bond", "EM_ASIA_bond", "CHINA_bond",
                          "EM_EURO_bond", "BRAZIL_bond", "RUSSIA_bond",
                          "INDIA_bond", "HONGKONG_bond"),
-             country_cn = c("ÐÂÐËÊÐ³¡", "ÐÂÐËÑÇÖÞ", "ÖÐ¹ú", "ÐÂÐËÅ·ÖÞ",
-                            "°ÍÎ÷", "¶íÂÞË¹", "Ó¡¶È", "Ïã¸Û"))
+             country_cn = c("æ–°å…´å¸‚åœº", "æ–°å…´äºšæ´²", "ä¸­å›½", "æ–°å…´æ¬§æ´²",
+                            "å·´è¥¿", "ä¿„ç½—æ–¯", "å°åº¦", "é¦™æ¸¯"))
 
 t <- as_tibble(cbind(country = names(country_flow), 
                      t(country_flow))) %>%
@@ -484,8 +484,8 @@ t <- as_tibble(cbind(country = names(country_flow),
 ggplot(t, aes(x=reorder(country_cn, V2), 
               y=V2,fill=country_cn)) +
   geom_bar(stat = 'identity') + 
-  ylab("ÈÕÆÚ") +
-  xlab("¹ú¼Ò") +
+  ylab("æ—¥æœŸ") +
+  xlab("å›½å®¶") +
   coord_flip() +
   theme_minimal() +
   theme(legend.position="none") +
@@ -496,8 +496,8 @@ ggplot(t, aes(x=reorder(country_cn, V2),
 plot1 <- ggplot(data = country_flow, aes(x = date)) +
   geom_bar(aes(y = EM_bond)) +
   geom_line(aes(y = EM_bond), color = "#D70C19", size = 1) +
-  ylab("ÐÂÐËÊÐ³¡×Ê½ð¾»Á÷Èë") +
-  xlab("ÈÕÆÚ") +
+  ylab("æ–°å…´å¸‚åœºèµ„é‡‘å‡€æµå…¥") +
+  xlab("æ—¥æœŸ") +
   geom_line(aes(y = 0)) +
   ylim(-5000, 5000) +
   theme_classic() +
@@ -544,8 +544,8 @@ US_ETF_fundflow <- function(US_ETF_flow,
              us_business_day)
     l[[etf]] <- ggplot(data, aes(x = date)) +
       geom_bar(stat = "identity", aes(y = FUND_FLOW)) +
-      ylab(sprintf("%s »ù½ð¾»Á÷Èë", etf)) +
-      xlab("ÈÕÆÚ")
+      ylab(sprintf("%s åŸºé‡‘å‡€æµå…¥", etf)) +
+      xlab("æ—¥æœŸ")
   }
   return(l)
 }
@@ -593,7 +593,7 @@ weekly_report <- read_docx(path = "word_reports/template1.docx") %>%
 
 #
 
-df <- read.csv("D:/Aldrich/Beautiful-Visualization-with-R-master/µÚ1ÕÂ RÓïÑÔ±à³ÌÓë»æÍ¼»ù´¡/MappingAnalysis_Data.csv",
+df <- read.csv("D:/Aldrich/Beautiful-Visualization-with-R-master/ç¬¬1ç«  Rè¯­è¨€ç¼–ç¨‹ä¸Žç»˜å›¾åŸºç¡€/MappingAnalysis_Data.csv",
                header = TRUE)
 ggplot(df, aes(x = SOD, y = tau, size = age)) +
   geom_point(shape = 21, color = "black", fill = "#FF0000",

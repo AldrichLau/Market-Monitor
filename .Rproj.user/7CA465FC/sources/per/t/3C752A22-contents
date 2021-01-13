@@ -9,7 +9,7 @@ library(RColorBrewer)
 library(reshape2)
 
 
-# ¼ÆËãÖ¸ÊıµÄ¹ÀÖµ·ÖÎ»Êı
+# è®¡ç®—æŒ‡æ•°çš„ä¼°å€¼åˆ†ä½æ•°
 # Category
 # index_cat_price
 # cat = ""
@@ -45,7 +45,6 @@ val_quantile <- function(index_price, cat, group, table_width) {
   
   if ("rating2" %in% names(result)) {
     result <- result %>%
-      filter(rating2 %in% c("AA", "A", "BBB", "BB", "B", "CCC", "CC", "NR")) %>%
       mutate(rating2 = factor(rating2,
                               levels = c("AA", "A", "BBB", "BB", "B", "CCC", "CC", "NR"))) %>%
       arrange(rating2)
@@ -68,15 +67,15 @@ val_quantile <- function(index_price, cat, group, table_width) {
     color(~ spread_q_all > 0.8, color = "red", ~ spread_q_all) %>%
     
     
-    add_header_row(values = c("", "", "µ½ÆÚÊÕÒæÂÊÀúÊ·°Ù·ÖÎ»", "µ½ÆÚÊÕÒæÂÊÀúÊ·°Ù·ÖÎ»", 
-                              "µ½ÆÚÊÕÒæÂÊÀúÊ·°Ù·ÖÎ»", "", "ĞÅÓÃÀû²îÀúÊ·°Ù·ÖÎ»", 
-                              "ĞÅÓÃÀû²îÀúÊ·°Ù·ÖÎ»", "ĞÅÓÃÀû²îÀúÊ·°Ù·ÖÎ»")) %>%
+    add_header_row(values = c("", "", "åˆ°æœŸæ”¶ç›Šç‡å†å²ç™¾åˆ†ä½", "åˆ°æœŸæ”¶ç›Šç‡å†å²ç™¾åˆ†ä½", 
+                              "åˆ°æœŸæ”¶ç›Šç‡å†å²ç™¾åˆ†ä½", "", "ä¿¡ç”¨åˆ©å·®å†å²ç™¾åˆ†ä½", 
+                              "ä¿¡ç”¨åˆ©å·®å†å²ç™¾åˆ†ä½", "ä¿¡ç”¨åˆ©å·®å†å²ç™¾åˆ†ä½")) %>%
     merge_at(i = 1, j = c(3,4,5), part = 'header') %>%
     merge_at(i = 1, j = c(7,8,9), part = 'header') %>%
-    set_header_labels(Category = "·Ö×é", rating2 = "·Ö×é", Label = "·Ö×é", 
-                      YTM = "µ½ÆÚÊÕÒæÂÊ", YTM_q_1y = "1Äê", YTM_q_3y = "3Äê",
-                      YTM_q_all = "È«²¿", spread = "ĞÅÓÃÀû²î", spread_q_1y = "1Äê", spread_q_3y = "3Äê",
-                      spread_q_all = "È«²¿") %>%
+    set_header_labels(Category = "åˆ†ç»„", rating2 = "åˆ†ç»„", Label = "åˆ†ç»„", 
+                      YTM = "åˆ°æœŸæ”¶ç›Šç‡", YTM_q_1y = "1å¹´", YTM_q_3y = "3å¹´",
+                      YTM_q_all = "å…¨éƒ¨", spread = "ä¿¡ç”¨åˆ©å·®", spread_q_1y = "1å¹´", spread_q_3y = "3å¹´",
+                      spread_q_all = "å…¨éƒ¨") %>%
     font(fontname = "Microsoft YaHei", part = "header") %>%
     font(fontname = "Calibri", part = "body") %>%
     fontsize(size = 10, part = "all") %>%
@@ -91,7 +90,7 @@ val_quantile <- function(index_price, cat, group, table_width) {
 
 
 
-# ½«ÖÜÔÂÄêµÄtableÆ´Ò»Æğ
+# å°†å‘¨æœˆå¹´çš„tableæ‹¼ä¸€èµ·
 summary_wmy <- function(html_w, html_m, html_y) {
   w <- as.data.frame(read_html(html_w) %>% html_table(fill=TRUE)) %>%
     mutate(across(everything(), ~replace_na(.x, ""))) %>%
@@ -110,8 +109,8 @@ summary_wmy <- function(html_w, html_m, html_y) {
 # html_table = Market$summary1[1]
 # html_table = Market$top[1]
 # tran_kable1(html_table, 6.5, 1)
-# ×ª»»market$summary£¬mode1ÊÇµ¥·Ö×éÍ³¼Æ±í£¬
-# mode1ÊÇsummary1£¬mode2ÊÇtop&bottom
+# è½¬æ¢market$summaryï¼Œmode1æ˜¯å•åˆ†ç»„ç»Ÿè®¡è¡¨ï¼Œ
+# mode1æ˜¯summary1ï¼Œmode2æ˜¯top&bottom
 tran_kable1 <- function(html_table, page_width=6.5) {
   ft <- as.data.frame(read_html(html_table) %>% html_table(fill=TRUE)) %>%
     mutate(across(everything(), ~replace_na(.x, ""))) %>%
@@ -148,10 +147,10 @@ tran_kable1 <- function(html_table, page_width=6.5) {
     color(~ spread_YTD > 0, color = "#008000", ~ spread_YTD) %>%
 
     set_header_labels(Category = "", rating2 = "", Label = "",
-                      price_chg = "ÕÇµø·ù", price_MTD = "ÕÇµø·ù",
-                      price_YTD = "ÕÇµø·ù", spread_chg = "ĞÅÓÃÀû²î±ä¶¯",
-                      spread_MTD = "ĞÅÓÃÀû²î±ä¶¯", spread_YTD = "ĞÅÓÃÀû²î±ä¶¯") %>%
-    add_header_row(values = c("·Ö×é", "±¾ÖÜ", "±¾ÔÂ", "±¾Äê", "±¾ÖÜ", "±¾ÔÂ", "±¾Äê"),
+                      price_chg = "æ¶¨è·Œå¹…", price_MTD = "æ¶¨è·Œå¹…",
+                      price_YTD = "æ¶¨è·Œå¹…", spread_chg = "ä¿¡ç”¨åˆ©å·®å˜åŠ¨",
+                      spread_MTD = "ä¿¡ç”¨åˆ©å·®å˜åŠ¨", spread_YTD = "ä¿¡ç”¨åˆ©å·®å˜åŠ¨") %>%
+    add_header_row(values = c("åˆ†ç»„", "æœ¬å‘¨", "æœ¬æœˆ", "æœ¬å¹´", "æœ¬å‘¨", "æœ¬æœˆ", "æœ¬å¹´"),
                    top = FALSE) %>%
     merge_at(i=1, j=2:4, part = "header") %>%
     merge_at(i=1, j=5:7, part = "header") %>%
@@ -167,7 +166,7 @@ tran_kable1 <- function(html_table, page_width=6.5) {
 }
 
 
-# °ÑÕÇµø·ùÅÅÃûÖÜÔÂÄêºÏ²¢ºóµÄ±í¸ñ×ª»¯³Éflextable
+# æŠŠæ¶¨è·Œå¹…æ’åå‘¨æœˆå¹´åˆå¹¶åçš„è¡¨æ ¼è½¬åŒ–æˆflextable
 # html_w = Market$bottom[1]
 # html_m = Market$bottom_MTD[1]
 # html_y = Market$bottom_YTD[1]
@@ -188,10 +187,10 @@ tran_kable_top_bot <- function(html_w, html_m, html_y, page_width) {
     color(~ spread_YTD < 0, color = "red", ~ spread_YTD) %>%
     color(~ spread_YTD > 0, color = "#008000", ~ spread_YTD) %>%
     
-    set_header_labels(Name...1 = "Õ®È¯¼ò³Æ", Name...4 = "Õ®È¯¼ò³Æ", Name...7 = "Õ®È¯¼ò³Æ",
-                      price_chg = "ÕÇµø·ù", price_MTD = "ÕÇµø·ù", price_YTD = "ÕÇµø·ù",
-                      spread_chg = "ĞÅÓÃÀû²î±ä»¯", spread_MTD = "ĞÅÓÃÀû²î±ä»¯", spread_YTD = "ĞÅÓÃÀû²î±ä»¯") %>%
-    add_header_row(values = c("", "±¾ÖÜ", "±¾ÖÜ", "", "±¾ÔÂ", "±¾ÔÂ", "", "±¾Äê", "±¾Äê"), top = FALSE) %>%
+    set_header_labels(Name...1 = "å€ºåˆ¸ç®€ç§°", Name...4 = "å€ºåˆ¸ç®€ç§°", Name...7 = "å€ºåˆ¸ç®€ç§°",
+                      price_chg = "æ¶¨è·Œå¹…", price_MTD = "æ¶¨è·Œå¹…", price_YTD = "æ¶¨è·Œå¹…",
+                      spread_chg = "ä¿¡ç”¨åˆ©å·®å˜åŒ–", spread_MTD = "ä¿¡ç”¨åˆ©å·®å˜åŒ–", spread_YTD = "ä¿¡ç”¨åˆ©å·®å˜åŒ–") %>%
+    add_header_row(values = c("", "æœ¬å‘¨", "æœ¬å‘¨", "", "æœ¬æœˆ", "æœ¬æœˆ", "", "æœ¬å¹´", "æœ¬å¹´"), top = FALSE) %>%
     merge_at(i = 2, j = 2:3, part = "header") %>%
     merge_at(i = 2, j = 5:6, part = "header") %>%
     merge_at(i = 2, j = 8:9, part = "header") %>%
@@ -210,7 +209,7 @@ tran_kable_top_bot <- function(html_w, html_m, html_y, page_width) {
   
 
 
-# ×ª»»duration matrix
+# è½¬æ¢duration matrix
 # html_table = Market$summary4[1]
 # html_table = property$summary6[1]
 # mode = 2
@@ -281,74 +280,67 @@ tran_kable2 <- function(html_table, page_width=6.5, mode=2) {
 }
 
 
-# ¼ÆËã´óÀà×Ê²úÕÇµø
+# è®¡ç®—å¤§ç±»èµ„äº§æ¶¨è·Œ
 asset_perform <- function(con3, date_yr,
                           date_mt, date_wk, date_end, page_width=6.5) {
-
-  data <- as_tibble(dbReadTable(con3, "Index_price"))
-  region <- dbReadTable(con3, "Region")
-  
-  pct_yr <- data %>%
-    filter(date %in% c(date_yr, date_end)) %>%
-    group_by(ID) %>%
-    arrange("date") %>%
-    mutate(pct_YTD = percent(PX_LAST / lag(PX_LAST) - 1)) %>%
-    na.omit() %>%
-    select(ID, pct_YTD)
-  
-  pct_mt <- data %>%
-    filter(date %in% c(date_mt, date_end)) %>%
-    group_by(ID) %>%
-    arrange("date") %>%
-    mutate(pct_MTD = percent(PX_LAST / lag(PX_LAST) - 1)) %>%
-    na.omit() %>%
-    select(ID, pct_MTD)
-  
-  pct_wk <- data %>%
-    filter(date %in% c(date_wk, date_end)) %>%
-    group_by(ID) %>%
-    arrange("date") %>%
-    mutate(pct_WTD = percent(PX_LAST / lag(PX_LAST) - 1)) %>%
-    na.omit() %>%
-    select(ID, PX_LAST, pct_WTD)
-  
-  pct_sum <- pct_wk %>%
-    left_join(pct_mt, by = "ID") %>%
-    left_join(pct_yr, by = "ID") %>%
-    left_join(region, by = "ID") %>%
-    select(-Source) %>%
-    relocate(Type, Region, ID) %>%
-    rename(Asset = Type)
-  
+  l = c()
+  for (table in c("Equity", "Rates", "Credit", "FX", "Commodity", "Volatility")) {
+    data <- as_tibble(dbReadTable(con3, table))
+    
+    pct_yr <- data %>%
+      filter(date %in% c(date_yr, date_end)) %>%
+      group_by(ID) %>%
+      arrange("date") %>%
+      mutate(pct_YTD = percent(PX_LAST / lag(PX_LAST) - 1)) %>%
+      na.omit() %>%
+      select(ID, pct_YTD)
+    
+    pct_mt <- data %>%
+      filter(date %in% c(date_mt, date_end)) %>%
+      group_by(ID) %>%
+      arrange("date") %>%
+      mutate(pct_MTD = percent(PX_LAST / lag(PX_LAST) - 1)) %>%
+      na.omit() %>%
+      select(ID, pct_MTD)
+    
+    pct_wk <- data %>%
+      filter(date %in% c(date_wk, date_end)) %>%
+      group_by(ID) %>%
+      arrange("date") %>%
+      mutate(pct_WTD = percent(PX_LAST / lag(PX_LAST) - 1),
+             Asset = table) %>%
+      na.omit() %>%
+      select(Asset, Region, ID, PX_LAST, pct_WTD)
+    
+    pct_sum <- pct_wk %>%
+      left_join(pct_mt, by = "ID") %>%
+      left_join(pct_yr, by = "ID")
+    l[[table]] = pct_sum
+  }
   x <- c("Equity", "Rates", "Credit", "FX", "Commodity", "Volatility")
-  result <- pct_sum %>%
-    filter(!(Asset == "Rates" & substr(ID, 1, 2) == "GT"),
-           !Asset == "ETF") %>%
+  result <- bind_rows(l) %>%
     mutate(Asset = factor(Asset, levels = x)) %>%
     group_by(Asset) %>%
     arrange(desc(pct_WTD), .by_group = TRUE) %>%
     ungroup %>%
     # slice(match(x, Asset)) %>%
     flextable() %>%
+    bold(part = 'all', bold = TRUE) %>%
     color(~ pct_WTD < 0, color = "red", ~ pct_WTD) %>%
     color(~ pct_MTD < 0, color = "red", ~ pct_MTD) %>%
     color(~ pct_YTD < 0, color = "red", ~ pct_YTD) %>%
     color(~ pct_WTD > 0, color = "#008000", ~ pct_WTD) %>%
     color(~ pct_MTD > 0, color = "#008000", ~ pct_MTD) %>%
     color(~ pct_YTD > 0, color = "#008000", ~ pct_YTD) %>%
-    set_header_labels(ID = "Ö¸ÊıÃû³Æ", PX_LAST = "×îĞÂµãÎ»", Asset = "×Ê²úÀà±ğ",
-                      Region = "µØÇø/°å¿é", pct_WTD = "ÕÇµø·ù", pct_MTD = "ÕÇµø·ù", 
-                      pct_YTD = "ÕÇµø·ù") %>%
+    set_header_labels(ID = "æŒ‡æ•°åç§°", PX_LAST = "æœ€æ–°ç‚¹ä½", Asset = "èµ„äº§ç±»åˆ«",
+                      Region = "åœ°åŒº", pct_WTD = "æ¶¨è·Œå¹…", pct_MTD = "æ¶¨è·Œå¹…", 
+                      pct_YTD = "æ¶¨è·Œå¹…") %>%
     # height_all(height = 0.25, part = "body") %>%
-    merge_at(i=1, j=5:7, part = "header") %>%
     merge_at(i=1:6, j=1, part = "body") %>%
-    merge_at(i=7:11, j=1, part = "body") %>%
-    merge_at(i=12:29, j=1, part = "body") %>%
-    merge_at(i=30:36, j=1, part = "body") %>%
-    merge_at(i=37:42, j=1, part = "body") %>%
-    add_header_row(top = FALSE, values = c("", "", "", "", 
-                                           "±¾ÖÜ", "±¾ÔÂ", "±¾Äê")) %>%
-    bold(part = 'all', bold = TRUE) %>%
+    merge_at(i=7:20, j=1, part = "body") %>%
+    merge_at(i=21:26, j=1, part = "body") %>%
+    merge_at(i=27:33, j=1, part = "body") %>%
+    merge_at(i=34:38, j=1, part = "body") %>%
     # font(fontname = "Calibri", part = "body") %>%
     font(fontname = "Microsoft YaHei", part = "header") %>%
     font(fontname = "Calibri", part = "body") %>%
@@ -464,16 +456,16 @@ cor_plot <- function(index_price, group) {
 }
 
 
-# ÏòwordÖĞ²åÈëÍ¼±íµÄº¯Êı -----------------------------------------------------------
+# å‘wordä¸­æ’å…¥å›¾è¡¨çš„å‡½æ•° -----------------------------------------------------------
 
-# ĞÂÔöË«Í¼
+# æ–°å¢åŒå›¾
 add_graph <- function(weekly_report, plot1, plot2, width, height, style) {
   weekly_report <- weekly_report %>%
     body_add_gg(value = ggarrange(plot1, plot2, ncol = 2, nrow = 1), 
               style = style, width = width, height = height)
 }
 
-# ĞÂÔötype1ÊÇsummaryÀà±í¸ñ£¬type2ÊÇtop & bottom
+# æ–°å¢type1æ˜¯summaryç±»è¡¨æ ¼ï¼Œtype2æ˜¯top & bottom
 # html_w = AT1$summary1[1]
 add_table <- function(weekly_report, html_w, html_m, html_y, table_width, caption_title, 
                       table_style, table_num, type=1) {
@@ -488,7 +480,7 @@ add_table <- function(weekly_report, html_w, html_m, html_y, table_width, captio
     body_add_flextable(value = ftout)
 }
 
-# ĞÂÔömatrixÀà±í¸ñ
+# æ–°å¢matrixç±»è¡¨æ ¼
 add_table1 <- function(weekly_report, index_price, cat, group, table_width, caption_title,
                        table_style, table_num) {
   ftout <- val_quantile(index_price, cat, group, table_width)

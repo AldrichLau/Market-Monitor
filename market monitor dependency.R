@@ -413,7 +413,7 @@ bond  <- function(bonds_info, mapping_credit2) {
 # bonds_info_latest = data_bond
 # index_weights = index_wts['cat']
 # hist_data_this_year = hist_data_this_year
-# date_start = dates['date_wk']
+# date_start = dates['date_mt']
 # date_end = dates['date_end']
 snap <- function(bonds_info_latest, index_weights, hist_data_this_year, date_start, date_end) {
   dayfrac <- yearFraction(ymd(date_start), ymd(date_end), 6)
@@ -431,7 +431,7 @@ snap <- function(bonds_info_latest, index_weights, hist_data_this_year, date_sta
     select(date, ID, price, price_dirty, spread) %>%
     left_join(coupon) %>%
     group_by(ID) %>%
-    arrange(ID, date) %>%
+    arrange(date, .by_group = TRUE) %>%
     mutate(price_chg = (price - lag(price)) / lag(price_dirty),
            coupon_chg = coupon / lag(price_dirty),
            price_chg = price_chg + coupon_chg,
@@ -892,7 +892,8 @@ metric_plot <- function(index_price, name, metric) {
     geom_line(aes(y = std2), color = "#4B4948", linetype = 2) +
     ylab(print(metric)) +
     labs(title = print(name)) +
-    theme_classic()
+    theme_classic() +
+    theme(text = element_text(size = 12, family = "Calibri"))
 
   return(metric_plot)
 }
@@ -930,7 +931,8 @@ metric_plot2 <- function(index_price, group, name1, name2, metric) {
     geom_line(aes(y = std2), color = "black", linetype = 2) +
     ylab(print(metric)) +
     labs(title = paste(print(name1), "vs", print(name2), sep = " ")) +
-    theme_classic()
+    theme_classic() +
+    theme(text = element_text(size = 12, family = "Calibri"))
 }
 
 
@@ -948,7 +950,8 @@ index_plot <- function(index_price, name) {
     geom_line(aes(y = index_price_net), color = "#4B4948", size = 1) +
     ylab("return") +
     labs(title = print(name)) + 
-    theme_classic()
+    theme_classic() +
+    theme(text = element_text(size = 12, family = "Calibri"))
 }
 
 
@@ -982,7 +985,8 @@ dot_plot <- function(data_bond, snap_data, name, group, metric, size) {
     facet_wrap(vars(get(group)), scales = "free", ncol = 1) +
     ylab(print(metric)) +
     ggtitle(paste("By", print(group), sep = " ")) +
-    theme_classic()
+    theme_classic() +
+    theme(text = element_text(size = 12, family = "Calibri"))
 }
 
 # index_price1 = index_prices$cat
@@ -1016,7 +1020,8 @@ generic_plot <- function(index_price) {
     facet_grid(rows = vars(duration),
                cols = vars(Label),
                scales = "free") +
-    ggtitle(paste("By", "Label", sep = " "))
+    ggtitle(paste("By", "Label", sep = " ")) +
+    theme(text = element_text(size = 12, family = "Calibri"))
 }
 
 
@@ -1079,7 +1084,7 @@ report1 <- function(data_bond, snap_data, index_wts, index_prices, name) {
   if(name %in% c("LGFV", "Industry", "AT1", "Tier 2")) {
     data_heat <- heatmap_tree3(data_snap %>% left_join(data_bond))} else{
       data_heat <- heatmap_tree2(data_snap %>% left_join(data_bond))}
-  
+
   data_summary1 <- summary_table_present3(index_sum_table_rating2, bonds_info_tidy,
                                           group1 = name, group2 = "rating2", dates)
   data_summary2 <- summary_table_present3(index_sum_table_Label, bonds_info_tidy,
@@ -1139,6 +1144,7 @@ report1 <- function(data_bond, snap_data, index_wts, index_prices, name) {
 }
 
 #name = ""
+
 report2 <- function(bonds_info, mapping_credit2, data, index_wts, index_prices, name = "") {
   
   data_bond <- bond(bonds_info, mapping_credit2)

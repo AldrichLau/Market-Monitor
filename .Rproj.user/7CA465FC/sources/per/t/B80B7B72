@@ -1,0 +1,25 @@
+{
+    "id": "B80B7B72",
+    "path": "//nas-hk/Investment team/Fixed Income/Weekly/Market Monitor/CNUSD_database.R",
+    "project_path": null,
+    "type": "r_source",
+    "hash": "4194652157",
+    "contents": "",
+    "dirty": false,
+    "created": 1610423668080.0,
+    "source_on_save": false,
+    "relative_order": 3,
+    "properties": {
+        "cursorPosition": "39,21",
+        "scrollLine": "22",
+        "docOutlineVisible": "0"
+    },
+    "folds": "",
+    "lastKnownWriteTime": 1610423491,
+    "encoding": "GB2312",
+    "collab_server": "",
+    "source_window": "",
+    "last_content_update": 1610423491,
+    "read_only": false,
+    "read_only_alternatives": []
+}
